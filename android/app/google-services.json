@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "437258498696",
+    "project_id": "app-vendas-52770",
+    "storage_bucket": "app-vendas-52770.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:437258498696:android:81d7feb7158ca8ca30653d",
+        "android_client_info": {
+          "package_name": "br.com.appvendas.app_vendas"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAFafO4O6YYziQb1M0L3Qdr9nJV8M2tIVk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
