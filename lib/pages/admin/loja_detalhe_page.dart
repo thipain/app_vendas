@@ -155,6 +155,50 @@ class _LojaDetalhePageState extends State<LojaDetalhePage> {
     );
   }
 
+  /// Exclusão definitiva: pede para digitar o nome da loja.
+  Future<void> _excluir(Loja l) async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (_) => _ConfirmarExclusao(loja: l),
+    );
+    if (confirmado != true || !mounted) return;
+    final etapa = ValueNotifier<String>('Preparando...');
+    final nav = Navigator.of(context, rootNavigator: true);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (_) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          content: ValueListenableBuilder<String>(
+            valueListenable: etapa,
+            builder: (_, e, _) => Row(
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(width: 16),
+                Expanded(child: Text(e)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    try {
+      await SistemaRepository().excluirLoja(
+        l,
+        progresso: (e) => etapa.value = e,
+      );
+      nav.pop();
+      if (!mounted) return;
+      avisar(context, 'Loja ${l.nome} excluída.');
+      Navigator.of(context).pop();
+    } catch (e) {
+      nav.pop();
+      if (mounted) mostrarErro(context, e);
+    }
+  }
+
   Widget _acoes(BuildContext context, Loja l) {
     final temFone = telefoneWhatsApp(l) != null;
     return Padding(
@@ -199,6 +243,14 @@ class _LojaDetalhePageState extends State<LojaDetalhePage> {
             onPressed: () => _entrarComoSuporte(l),
             icon: const Icon(Icons.support_agent),
             label: const Text('Entrar como suporte'),
+          ),
+          TextButton.icon(
+            onPressed: () => _excluir(l),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            icon: const Icon(Icons.delete_forever_outlined),
+            label: const Text('Excluir loja'),
           ),
         ],
       ),
@@ -354,6 +406,76 @@ class LinhaPagamento extends StatelessWidget {
           if (p.observacao.isNotEmpty) p.observacao,
         ].join(' · '),
       ),
+    );
+  }
+}
+
+class _ConfirmarExclusao extends StatefulWidget {
+  final Loja loja;
+  const _ConfirmarExclusao({required this.loja});
+
+  @override
+  State<_ConfirmarExclusao> createState() => _ConfirmarExclusaoState();
+}
+
+class _ConfirmarExclusaoState extends State<_ConfirmarExclusao> {
+  final _nome = TextEditingController();
+
+  @override
+  void dispose() {
+    _nome.dispose();
+    super.dispose();
+  }
+
+  bool get _confere =>
+      _nome.text.trim().toLowerCase() == widget.loja.nome.trim().toLowerCase();
+
+  @override
+  Widget build(BuildContext context) {
+    final erro = Theme.of(context).colorScheme.error;
+    return AlertDialog(
+      icon: Icon(Icons.delete_forever_outlined, color: erro),
+      title: const Text('Excluir loja definitivamente'),
+      content: SizedBox(
+        width: 440,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Todos os dados da ${widget.loja.nome} serão apagados do '
+              'Firebase: produtos, vendas, caixa, comandas, estoque, notas, '
+              'equipe, ponto e configurações. Não é possível desfazer.',
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'O histórico de mensalidades e a auditoria do sistema são '
+              'mantidos. As contas de acesso (e-mail e senha) continuam '
+              'existindo, mas sem nenhuma loja vinculada.',
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _nome,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: 'Digite "${widget.loja.nome}" para confirmar',
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: erro),
+          onPressed: _confere ? () => Navigator.pop(context, true) : null,
+          child: const Text('Excluir'),
+        ),
+      ],
     );
   }
 }

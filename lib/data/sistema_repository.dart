@@ -405,6 +405,49 @@ class SistemaRepository {
           .snapshots()
           .map((s) => s.docs.map(RegistroSistema.fromDoc).toList());
 
+  /// Exclui definitivamente a loja e todos os dados dela (produtos, vendas,
+  /// equipe, configurações...), para liberar espaço no Firebase. Os
+  /// pagamentos de mensalidade e a auditoria do sistema são mantidos.
+  /// Precisa de internet e não pode ser desfeito.
+  Future<void> excluirLoja(
+    Loja loja, {
+    void Function(String etapa)? progresso,
+  }) async {
+    final lojaRef = Banco.lojas.doc(loja.id);
+    for (final c in [...colecoesDaLoja, 'config', 'membros']) {
+      progresso?.call('Excluindo $c...');
+      while (true) {
+        final docs = await lojaRef
+            .collection(c)
+            .limit(400)
+            .get(const GetOptions(source: Source.server));
+        if (docs.docs.isEmpty) break;
+        final batch = _db.batch();
+        for (final d in docs.docs) {
+          batch.delete(d.reference);
+        }
+        await batch.commit();
+      }
+    }
+    progresso?.call('Excluindo avisos da loja...');
+    final avisos = await _avisos
+        .where('lojaId', isEqualTo: loja.id)
+        .get(const GetOptions(source: Source.server));
+    final batch = _db.batch();
+    for (final d in avisos.docs) {
+      batch.delete(d.reference);
+    }
+    batch.delete(lojaRef);
+    _registrar(
+      batch,
+      'store.delete',
+      'Loja excluída com todos os dados',
+      lojaId: loja.id,
+      dados: {'nome': loja.nome, 'responsavel': loja.responsavelNome},
+    );
+    await batch.commit();
+  }
+
   /// true quando ainda há dados da versão anterior (sem lojas) para migrar.
   Future<bool> temDadosAntigos(Sistema sistema) async {
     if (sistema.migradoPara != null) return false;

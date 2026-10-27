@@ -95,7 +95,8 @@ service cloud.firestore {
       allow read: if acessa(loja) || (logado() && exists(caminhoMembro(loja)));
       allow create: if dono() || donoNaConfiguracao();
       allow update: if dono();
-      allow delete: if false;
+      // Excluir a loja (cliente que encerrou o contrato): só o dono.
+      allow delete: if dono();
 
       match /membros/{uid} {
         allow read: if acessa(loja) || (logado() && request.auth.uid == uid);
@@ -105,7 +106,7 @@ service cloud.firestore {
           || (ativoNa(loja) && request.auth.uid == uid
               && request.resource.data.diff(resource.data).affectedKeys()
                    .hasOnly(['nome', 'nomeBusca', 'atualizadoEm']));
-        allow delete: if false;
+        allow delete: if dono();
       }
 
       match /config/{doc} {
@@ -115,7 +116,8 @@ service cloud.firestore {
 
       match /auditoria/{id} {
         allow read, create: if acessa(loja);
-        allow update, delete: if false;
+        allow update: if false;
+        allow delete: if dono();
       }
 
       match /{colecao}/{id} {
