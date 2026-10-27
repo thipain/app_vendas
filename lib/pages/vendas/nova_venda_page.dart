@@ -8,6 +8,7 @@ import '../../data/venda_repository.dart';
 import '../../models/cliente.dart';
 import '../../models/produto.dart';
 import '../../models/venda.dart';
+import '../../widgets/largura_maxima.dart';
 
 class NovaVendaPage extends StatefulWidget {
   const NovaVendaPage({super.key});
@@ -72,12 +73,14 @@ class _NovaVendaPageState extends State<NovaVendaPage> {
       if (i >= 0) {
         _itens[i] = _itens[i].copyWith(quantidade: _itens[i].quantidade + 1);
       } else {
-        _itens.add(ItemVenda(
-          produtoId: produto.id,
-          nome: produto.nome,
-          quantidade: 1,
-          precoUnitario: produto.preco,
-        ));
+        _itens.add(
+          ItemVenda(
+            produtoId: produto.id,
+            nome: produto.nome,
+            quantidade: 1,
+            precoUnitario: produto.preco,
+          ),
+        );
       }
     });
   }
@@ -96,20 +99,21 @@ class _NovaVendaPageState extends State<NovaVendaPage> {
   void _finalizar() {
     if (_itens.isEmpty) return;
     if (_valorDesconto < 0 || _valorDesconto > _subtotal) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Desconto inválido')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Desconto inválido')));
       return;
     }
-    VendaRepository().registrar(Venda(
-      clienteId: _cliente?.id,
-      clienteNome: _cliente?.nome,
-      itens: List.of(_itens),
-      desconto: _valorDesconto,
-      formaPagamento: _formaPagamento,
-      vendedorEmail: FirebaseAuth.instance.currentUser?.email ?? '',
-      data: DateTime.now(),
-    ));
+    VendaRepository().registrar(
+      Venda(
+        clienteId: _cliente?.id,
+        clienteNome: _cliente?.nome,
+        itens: List.of(_itens),
+        desconto: _valorDesconto,
+        formaPagamento: _formaPagamento,
+        vendedorEmail: FirebaseAuth.instance.currentUser?.email ?? '',
+        data: DateTime.now(),
+      ),
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Venda de ${formatarMoeda(_total)} registrada')),
     );
@@ -121,76 +125,80 @@ class _NovaVendaPageState extends State<NovaVendaPage> {
     final texto = Theme.of(context).textTheme;
     return Scaffold(
       appBar: AppBar(title: const Text('Nova venda')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.person),
-              title: Text(_cliente?.nome ?? 'Consumidor final'),
-              subtitle: const Text('Toque para escolher o cliente'),
-              trailing: _cliente == null
-                  ? null
-                  : IconButton(
-                      tooltip: 'Remover cliente',
-                      icon: const Icon(Icons.close),
-                      onPressed: () => setState(() => _cliente = null),
-                    ),
-              onTap: _escolherCliente,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: Text('Itens', style: texto.titleMedium)),
-              TextButton.icon(
-                onPressed: _adicionarProduto,
-                icon: const Icon(Icons.add),
-                label: const Text('Adicionar produto'),
+      body: LarguraMaxima(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.person),
+                title: Text(_cliente?.nome ?? 'Consumidor final'),
+                subtitle: const Text('Toque para escolher o cliente'),
+                trailing: _cliente == null
+                    ? null
+                    : IconButton(
+                        tooltip: 'Remover cliente',
+                        icon: const Icon(Icons.close),
+                        onPressed: () => setState(() => _cliente = null),
+                      ),
+                onTap: _escolherCliente,
               ),
-            ],
-          ),
-          if (_itens.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(child: Text('Nenhum item adicionado')),
             ),
-          for (var i = 0; i < _itens.length; i++) _itemTile(i),
-          const Divider(height: 32),
-          Text('Forma de pagamento', style: texto.titleMedium),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: [
-              for (final f in formasPagamento)
-                ChoiceChip(
-                  label: Text(f),
-                  selected: _formaPagamento == f,
-                  onSelected: (_) => setState(() => _formaPagamento = f),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(child: Text('Itens', style: texto.titleMedium)),
+                TextButton.icon(
+                  onPressed: _adicionarProduto,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Adicionar produto'),
                 ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _desconto,
-            decoration: const InputDecoration(
-              labelText: 'Desconto',
-              prefixText: r'R$ ',
-              border: OutlineInputBorder(),
+              ],
             ),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Total', style: texto.headlineSmall),
-              Text(formatarMoeda(_total), style: texto.headlineSmall),
-            ],
-          ),
-        ],
+            if (_itens.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: Text('Nenhum item adicionado')),
+              ),
+            for (var i = 0; i < _itens.length; i++) _itemTile(i),
+            const Divider(height: 32),
+            Text('Forma de pagamento', style: texto.titleMedium),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                for (final f in formasPagamento)
+                  ChoiceChip(
+                    label: Text(f),
+                    selected: _formaPagamento == f,
+                    onSelected: (_) => setState(() => _formaPagamento = f),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _desconto,
+              decoration: const InputDecoration(
+                labelText: 'Desconto',
+                prefixText: r'R$ ',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Total', style: texto.headlineSmall),
+                Text(formatarMoeda(_total), style: texto.headlineSmall),
+              ],
+            ),
+          ],
+        ),
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
@@ -199,7 +207,9 @@ class _NovaVendaPageState extends State<NovaVendaPage> {
             onPressed: _itens.isEmpty ? null : _finalizar,
             icon: const Icon(Icons.check),
             label: const Text('Finalizar venda'),
-            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(52),
+            ),
           ),
         ),
       ),
@@ -285,8 +295,10 @@ class _SeletorState<T> extends State<_Seletor<T>> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 final itens = snap.data!
-                    .where((e) =>
-                        widget.textoBusca(e).toLowerCase().contains(_busca))
+                    .where(
+                      (e) =>
+                          widget.textoBusca(e).toLowerCase().contains(_busca),
+                    )
                     .toList();
                 if (itens.isEmpty) {
                   return const Center(child: Text('Nada encontrado'));

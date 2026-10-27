@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:ota_update/ota_update.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'instalador_windows.dart';
 import 'update_service.dart';
 
 /// Procura uma versão nova no GitHub e, se houver, pede para o usuário atualizar.
@@ -13,10 +16,14 @@ Future<void> verificarAtualizacao(
   if (!context.mounted) return;
   if (release == null) {
     if (avisarSemNovidade) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Você já está na versão mais recente '
-            '(ou não foi possível consultar sem internet).'),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Você já está na versão mais recente '
+            '(ou não foi possível consultar sem internet).',
+          ),
+        ),
+      );
     }
     return;
   }
@@ -46,29 +53,40 @@ class _UpdateDialogState extends State<_UpdateDialog> {
       _erro = null;
       _progresso = null;
     });
+    if (Platform.isWindows) {
+      instalarAtualizacaoWindows(
+        widget.release.arquivoUrl,
+        widget.release.versao,
+        onProgresso: (p) {
+          if (mounted) setState(() => _progresso = p);
+        },
+      ).catchError((Object e) => _falhou('Falha ao baixar a atualização: $e'));
+      return;
+    }
     OtaUpdate()
         .execute(
-          widget.release.apkUrl,
+          widget.release.arquivoUrl,
           destinationFilename: 'app_vendas_${widget.release.versao}.apk',
         )
-        .listen(
-          _onEvento,
-          onError: (Object e) => _falhou('$e'),
-        );
+        .listen(_onEvento, onError: (Object e) => _falhou('$e'));
   }
 
   void _onEvento(OtaEvent evento) {
     if (!mounted) return;
     switch (evento.status) {
       case OtaStatus.DOWNLOADING:
-        setState(() => _progresso = (double.tryParse(evento.value ?? '') ?? 0) / 100);
+        setState(
+          () => _progresso = (double.tryParse(evento.value ?? '') ?? 0) / 100,
+        );
       case OtaStatus.INSTALLING:
       case OtaStatus.INSTALLATION_DONE:
         // O instalador do Android assume daqui em diante.
         setState(() => _baixando = false);
       case OtaStatus.PERMISSION_NOT_GRANTED_ERROR:
-        _falhou('Permita a instalação de apps desta fonte nas configurações '
-            'do Android e tente novamente.');
+        _falhou(
+          'Permita a instalação de apps desta fonte nas configurações '
+          'do Android e tente novamente.',
+        );
       case OtaStatus.CANCELED:
         setState(() => _baixando = false);
       default:
@@ -85,9 +103,9 @@ class _UpdateDialogState extends State<_UpdateDialog> {
   }
 
   Future<void> _abrirNoNavegador() => launchUrl(
-        Uri.parse(widget.release.apkUrl),
-        mode: LaunchMode.externalApplication,
-      );
+    Uri.parse(widget.release.arquivoUrl),
+    mode: LaunchMode.externalApplication,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -101,15 +119,19 @@ class _UpdateDialogState extends State<_UpdateDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(r.obrigatoria
-                  ? 'Esta atualização é obrigatória para o app continuar '
-                      'funcionando corretamente.'
-                  : 'Há uma nova versão disponível. Recomendamos atualizar '
-                      'para o melhor funcionamento do app.'),
+              Text(
+                r.obrigatoria
+                    ? 'Esta atualização é obrigatória para o app continuar '
+                          'funcionando corretamente.'
+                    : 'Há uma nova versão disponível. Recomendamos atualizar '
+                          'para o melhor funcionamento do app.',
+              ),
               if (r.notas.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                Text('Novidades:',
-                    style: Theme.of(context).textTheme.titleSmall),
+                Text(
+                  'Novidades:',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
                 const SizedBox(height: 4),
                 Text(r.notas),
               ],
@@ -117,15 +139,18 @@ class _UpdateDialogState extends State<_UpdateDialog> {
                 const SizedBox(height: 16),
                 LinearProgressIndicator(value: _progresso),
                 const SizedBox(height: 4),
-                Text(_progresso == null
-                    ? 'Iniciando download...'
-                    : 'Baixando ${(_progresso! * 100).toStringAsFixed(0)}%'),
+                Text(
+                  _progresso == null
+                      ? 'Iniciando download...'
+                      : 'Baixando ${(_progresso! * 100).toStringAsFixed(0)}%',
+                ),
               ],
               if (_erro != null) ...[
                 const SizedBox(height: 12),
-                Text(_erro!,
-                    style:
-                        TextStyle(color: Theme.of(context).colorScheme.error)),
+                Text(
+                  _erro!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
                 TextButton(
                   onPressed: _abrirNoNavegador,
                   child: const Text('Baixar pelo navegador'),

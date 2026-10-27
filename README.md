@@ -1,6 +1,8 @@
 # App Vendas
 
-App de vendas para Android feito em Flutter, com Firebase (Firestore + Authentication).
+App de vendas para **Android** e **Windows** feito em Flutter, com Firebase (Firestore + Authentication).
+O mesmo código roda no celular e no PC, com os mesmos dados: a loja usa no computador
+do balcão e registra vendas pelo celular quando está longe dele.
 Funciona **offline**: vendas, produtos e clientes são gravados no aparelho e sincronizados
 automaticamente com o Firebase quando a internet volta.
 
@@ -14,7 +16,8 @@ automaticamente com o Firebase quando a internet volta.
 - Indicador de sincronização (nuvem na barra superior) e relógio laranja nos itens
   ainda não enviados ao servidor
 - **Atualização automática**: ao abrir, o app consulta a última Release deste repositório
-  no GitHub e oferece baixar e instalar a versão nova
+  no GitHub e oferece baixar e instalar a versão nova (APK no Android, instalador no Windows)
+- Layout adaptável: menu inferior no celular e menu lateral no PC
 
 ## Estrutura
 
@@ -77,11 +80,15 @@ flutterfire configure --platforms=android
 > mas não dão acesso aos dados. Quem protege os dados são as **regras do Firestore**
 > e o login.
 
-### 3. Rodar no celular/emulador
+### 3. Rodar no celular/emulador ou no PC
 
 ```bash
 flutter run
 ```
+
+Para rodar no Windows (`flutter run -d windows`) é preciso o **Visual Studio 2022** com a
+carga de trabalho **"Desenvolvimento para desktop com C++"**. Não é necessário para
+publicar: o instalador do Windows é gerado pelo GitHub Actions.
 
 ---
 
@@ -91,10 +98,12 @@ flutter run
 
 1. Você cria uma tag `vX.Y.Z` e envia para o GitHub.
 2. O GitHub Actions ([`.github/workflows/release.yml`](.github/workflows/release.yml))
-   gera o APK assinado com a versão `X.Y.Z` e cria a Release com o APK anexado.
+   gera o APK assinado e o instalador do Windows (`app_vendas-setup-X.Y.Z.exe`, feito com
+   [Inno Setup](installer/app_vendas.iss)) e cria a Release com os dois anexados.
 3. Ao abrir, o app consulta `api.github.com/repos/<usuário>/<repo>/releases/latest`.
-   Se a versão for maior que a instalada, mostra o aviso **"Nova versão"**, baixa o APK
-   e abre o instalador do Android.
+   Se a versão for maior que a instalada, mostra o aviso **"Nova versão"**. No Android baixa
+   o APK e abre o instalador; no Windows baixa o instalador, roda em modo silencioso e
+   reabre o app já atualizado.
 4. Para tornar uma atualização **obrigatória** (sem botão "Depois"), edite a Release
    no GitHub e inclua `[obrigatoria]` no texto.
 
@@ -142,10 +151,15 @@ git push origin v1.0.1
 ```
 
 Acompanhe na aba **Actions** do GitHub. Ao terminar, a Release aparece na aba
-**Releases** com o APK. Sempre aumente o número da versão (`1.0.1` → `1.0.2` → `1.1.0`...).
+**Releases** com o APK e o instalador do Windows. Sempre aumente o número da versão (`1.0.1` → `1.0.2` → `1.1.0`...).
 
 ### Instalação nos aparelhos
 
 Na primeira vez, baixe o APK da página de Releases pelo celular e instale. O Android pedirá
 para **permitir instalar apps desta fonte**, tanto para o navegador quanto, na primeira
 atualização, para o próprio App Vendas.
+
+No PC, baixe `app_vendas-setup-X.Y.Z.exe` da página de Releases e execute. Não pede senha de
+administrador (instala só para o usuário atual). Como o instalador não é assinado
+digitalmente, o Windows pode mostrar "O Windows protegeu o computador": clique em
+**Mais informações → Executar assim mesmo**.

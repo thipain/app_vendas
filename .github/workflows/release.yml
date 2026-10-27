@@ -1,5 +1,6 @@
-# Gera o APK assinado e publica uma Release no GitHub sempre que uma tag
-# no formato v1.2.3 é enviada. A versão do app é tirada da própria tag.
+# Gera o APK assinado (Android) e o instalador (Windows) e publica os dois
+# numa Release do GitHub sempre que uma tag no formato v1.2.3 é enviada.
+# A versão do app é tirada da própria tag.
 name: Release Android
 
 on:
@@ -10,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  android:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -73,8 +74,62 @@ jobs:
           fi
           mv build/app/outputs/flutter-apk/app-release.apk "app_vendas-$VERSAO.apk"
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: app_vendas-${{ env.VERSAO }}.apk
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Versão a partir da tag
+        shell: bash
+        run: echo "VERSAO=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - run: flutter pub get
+
+      - name: Build do Windows
+        run: flutter build windows --release --build-name="$env:VERSAO" --build-number="${{ github.run_number }}"
+
+      - name: Instalador
+        run: |
+          # Leva junto o runtime do Visual C++, que o app precisa para abrir
+          # em computadores que não o têm instalado.
+          $destino = "build/windows/x64/runner/Release"
+          foreach ($dll in 'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll') {
+            Copy-Item "$env:WINDIR/System32/$dll" $destino
+          }
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue)) {
+            choco install innosetup -y --no-progress
+            $env:Path += ";${env:ProgramFiles(x86)}\Inno Setup 6"
+          }
+          iscc /DAppVersion=$env:VERSAO installer/app_vendas.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/app_vendas-setup-${{ env.VERSAO }}.exe
+
+  publicar:
+    needs: [android, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
       - name: Publicar Release
         uses: softprops/action-gh-release@v2
         with:
-          files: app_vendas-${{ env.VERSAO }}.apk
+          files: |
+            *.apk
+            *.exe
           generate_release_notes: true

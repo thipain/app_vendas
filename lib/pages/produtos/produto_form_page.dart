@@ -4,6 +4,7 @@ import '../../core/formatters.dart';
 import '../../data/produto_repository.dart';
 import '../../models/produto.dart';
 import '../../widgets/confirmar.dart';
+import '../../widgets/largura_maxima.dart';
 
 class ProdutoFormPage extends StatefulWidget {
   final Produto? produto;
@@ -19,9 +20,11 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
   late final _nome = TextEditingController(text: widget.produto?.nome);
   late final _codigo = TextEditingController(text: widget.produto?.codigo);
   late final _preco = TextEditingController(
-      text: widget.produto == null ? '' : valorParaCampo(widget.produto!.preco));
-  late final _estoque =
-      TextEditingController(text: widget.produto?.estoque.toString() ?? '0');
+    text: widget.produto == null ? '' : valorParaCampo(widget.produto!.preco),
+  );
+  late final _estoque = TextEditingController(
+    text: widget.produto?.estoque.toString() ?? '0',
+  );
 
   bool get _editando => widget.produto != null;
 
@@ -36,13 +39,15 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
 
   void _salvar() {
     if (!_form.currentState!.validate()) return;
-    _repo.salvar(Produto(
-      id: widget.produto?.id ?? '',
-      nome: _nome.text.trim(),
-      codigo: _codigo.text.trim(),
-      preco: lerValor(_preco.text)!,
-      estoque: int.parse(_estoque.text.trim()),
-    ));
+    _repo.salvar(
+      Produto(
+        id: widget.produto?.id ?? '',
+        nome: _nome.text.trim(),
+        codigo: _codigo.text.trim(),
+        preco: lerValor(_preco.text)!,
+        estoque: int.parse(_estoque.text.trim()),
+      ),
+    );
     Navigator.pop(context);
   }
 
@@ -72,54 +77,60 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
             ),
         ],
       ),
-      body: Form(
-        key: _form,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            TextFormField(
-              controller: _nome,
-              decoration: const InputDecoration(labelText: 'Nome *'),
-              textCapitalization: TextCapitalization.sentences,
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _codigo,
-              decoration:
-                  const InputDecoration(labelText: 'Código / código de barras'),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _preco,
-              decoration:
-                  const InputDecoration(labelText: 'Preço *', prefixText: r'R$ '),
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              validator: (v) {
-                final valor = lerValor(v ?? '');
-                if (valor == null) return 'Informe um preço válido';
-                if (valor < 0) return 'O preço não pode ser negativo';
-                return null;
-              },
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _estoque,
-              decoration: const InputDecoration(labelText: 'Estoque'),
-              keyboardType: TextInputType.number,
-              validator: (v) => int.tryParse(v?.trim() ?? '') == null
-                  ? 'Informe um número inteiro'
-                  : null,
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: _salvar,
-              icon: const Icon(Icons.save),
-              label: const Text('Salvar'),
-            ),
-          ],
+      body: LarguraMaxima(
+        child: Form(
+          key: _form,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              TextFormField(
+                controller: _nome,
+                decoration: const InputDecoration(labelText: 'Nome *'),
+                textCapitalization: TextCapitalization.sentences,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _codigo,
+                decoration: const InputDecoration(
+                  labelText: 'Código / código de barras',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _preco,
+                decoration: const InputDecoration(
+                  labelText: 'Preço *',
+                  prefixText: r'R$ ',
+                ),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                validator: (v) {
+                  final valor = lerValor(v ?? '');
+                  if (valor == null) return 'Informe um preço válido';
+                  if (valor < 0) return 'O preço não pode ser negativo';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _estoque,
+                decoration: const InputDecoration(labelText: 'Estoque'),
+                keyboardType: TextInputType.number,
+                validator: (v) => int.tryParse(v?.trim() ?? '') == null
+                    ? 'Informe um número inteiro'
+                    : null,
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: _salvar,
+                icon: const Icon(Icons.save),
+                label: const Text('Salvar'),
+              ),
+            ],
+          ),
         ),
       ),
     );
