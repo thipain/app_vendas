@@ -153,8 +153,9 @@ publicar: o instalador do Windows é gerado pelo GitHub Actions.
    Se a versão for maior que a instalada, mostra o aviso **"Nova versão"**. No Android baixa
    o APK e abre o instalador; no Windows baixa o instalador, roda em modo silencioso e
    reabre o app já atualizado.
-4. Para tornar uma atualização **obrigatória** (sem botão "Depois"), edite a Release
-   no GitHub e inclua `[obrigatoria]` no texto.
+4. Para tornar uma atualização **obrigatória** (sem botão "Depois"), crie a tag com uma
+   mensagem contendo `[obrigatoria]` (`git tag -a v1.2.3 -m "[obrigatoria] Novidades"`), ou
+   edite a Release no GitHub e inclua `[obrigatoria]` no texto.
 
 Configure o usuário/repositório em [`lib/core/config.dart`](lib/core/config.dart).
 
