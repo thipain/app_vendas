@@ -3,17 +3,23 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import '../core/permissoes.dart';
+import '../core/regra_exception.dart';
 import '../models/usuario.dart';
 import 'auditoria_repository.dart';
+import 'banco.dart';
 import 'offline.dart';
 
-/// Equipe: perfis, permissões e contas de acesso.
+/// Equipe da loja em uso: perfis, permissões e contas de acesso.
+///
+/// Cada pessoa tem uma conta no Firebase Authentication (uma só, mesmo que
+/// trabalhe em várias lojas) e um documento de membro em cada loja:
+/// lojas/{lojaId}/membros/{uid}.
 class UsuarioRepository {
-  static final _db = FirebaseFirestore.instance;
+  static CollectionReference<Map<String, dynamic>> membrosDa(String lojaId) =>
+      Banco.lojas.doc(lojaId).collection('membros');
+
   static CollectionReference<Map<String, dynamic>> get _col =>
-      _db.collection('usuarios');
-  static DocumentReference<Map<String, dynamic>> get _sistema =>
-      _db.collection('config').doc('sistema');
+      membrosDa(Banco.lojaId);
 
   Stream<Usuario?> watch(String uid) => _col
       .doc(uid)
@@ -25,92 +31,128 @@ class UsuarioRepository {
       .snapshots()
       .map((s) => s.docs.map(Usuario.fromDoc).toList());
 
-  /// true quando o sistema ainda não tem administrador (primeiro acesso).
-  Future<bool> precisaConfiguracaoInicial() async {
-    final doc = await _sistema.get(const GetOptions(source: Source.server));
-    return !doc.exists;
-  }
+  /// Dados do documento de membro de [usuario] na loja indicada.
+  static Map<String, dynamic> dadosMembro(
+    Usuario usuario,
+    String lojaId,
+    String lojaNome,
+  ) => {
+    ...usuario.toMap(),
+    'uid': usuario.id,
+    'lojaId': lojaId,
+    'lojaNome': lojaNome,
+  };
 
-  /// Primeiro acesso: a conta logada vira o administrador do sistema.
-  Future<void> configurarPrimeiroAdmin(String nome) async {
-    final conta = FirebaseAuth.instance.currentUser!;
-    final batch = _db.batch();
-    batch.set(_col.doc(conta.uid), {
-      ...Usuario(
-        nome: nome,
-        email: conta.email ?? '',
-        papel: Usuario.papelAdmin,
-      ).toMap(),
-      'criadoEm': FieldValue.serverTimestamp(),
-    });
-    batch.set(_sistema, {
-      'adminInicial': conta.uid,
-      'configuradoEm': FieldValue.serverTimestamp(),
-    });
-    await batch.commit();
-  }
-
-  /// Cria a conta de acesso de um funcionário. Precisa de internet.
+  /// Devolve o uid da conta com este e-mail, criando a conta se ainda não
+  /// existir. Precisa de internet.
   ///
-  /// Usa uma segunda instância do Firebase para não deslogar o administrador
-  /// (criar uma conta pelo SDK faz login automático nela).
-  Future<void> criar({
+  /// A conta é criada numa segunda instância do Firebase para não deslogar
+  /// quem está cadastrando (criar uma conta pelo SDK faz login nela).
+  static Future<({String uid, bool nova})> obterOuCriarConta({
     required String nome,
     required String email,
     required String senha,
-    required String papel,
-    required Set<String> permissoes,
   }) async {
+    final chave = email.trim().toLowerCase();
+    final existente = await Banco.contas
+        .doc(chave)
+        .get(const GetOptions(source: Source.server));
+    final uidExistente = existente.data()?['uid'] as String?;
+    if (uidExistente != null) return (uid: uidExistente, nova: false);
+
     final app = await Firebase.initializeApp(
       name: 'cadastro-${DateTime.now().microsecondsSinceEpoch}',
       options: Firebase.app().options,
     );
     try {
       final cred = await FirebaseAuth.instanceFor(app: app)
-          .createUserWithEmailAndPassword(email: email, password: senha);
-      final usuario = Usuario(
-        id: cred.user!.uid,
-        nome: nome,
-        email: email,
-        papel: papel,
-        permissoes: Permissao.normalizar(permissoes),
-      );
-      final batch = _db.batch();
-      batch.set(_col.doc(usuario.id), {
-        ...usuario.toMap(),
+          .createUserWithEmailAndPassword(email: chave, password: senha);
+      final uid = cred.user!.uid;
+      await Banco.contas.doc(chave).set({
+        'uid': uid,
+        'nome': nome,
         'criadoEm': FieldValue.serverTimestamp(),
       });
-      AuditoriaRepository.noBatch(batch, 'user.create', 'Funcionário cadastrado',
-          entidade: 'usuario', entidadeId: usuario.id, depois: usuario.toMap());
-      await batch.commit();
+      return (uid: uid, nova: true);
     } finally {
       await app.delete();
     }
   }
 
+  /// Cadastra um funcionário na loja em uso. Se a pessoa já tem conta (em
+  /// outra loja), ela é apenas vinculada e continua com a mesma senha.
+  Future<void> criar({
+    required String nome,
+    required String email,
+    required String senha,
+    required String papel,
+    required Set<String> permissoes,
+    required String lojaNome,
+  }) async {
+    final conta = await obterOuCriarConta(
+      nome: nome,
+      email: email,
+      senha: senha,
+    );
+    final ref = _col.doc(conta.uid);
+    final atual = await ref.get(const GetOptions(source: Source.server));
+    if (atual.exists) {
+      throw const RegraException('Este e-mail já está cadastrado.');
+    }
+    final usuario = Usuario(
+      id: conta.uid,
+      nome: nome,
+      email: email.trim().toLowerCase(),
+      papel: papel,
+      permissoes: Permissao.normalizar(permissoes),
+    );
+    final batch = Banco.db.batch();
+    batch.set(ref, {
+      ...dadosMembro(usuario, Banco.lojaId, lojaNome),
+      'criadoEm': FieldValue.serverTimestamp(),
+    });
+    AuditoriaRepository.noBatch(
+      batch,
+      'user.create',
+      'Funcionário cadastrado',
+      entidade: 'usuario',
+      entidadeId: usuario.id,
+      depois: {...usuario.toMap(), 'contaExistente': !conta.nova},
+    );
+    await batch.commit();
+  }
+
   /// Altera nome, papel, status ou permissões, protegendo o último admin.
-  Future<void> salvar(Usuario antes, Usuario depois,
-      {required List<Usuario> equipe}) async {
-    final perdeAdmin = antes.isAdmin &&
-        antes.ativo &&
-        (!depois.isAdmin || !depois.ativo);
+  Future<void> salvar(
+    Usuario antes,
+    Usuario depois, {
+    required List<Usuario> equipe,
+  }) async {
+    final perdeAdmin =
+        antes.isAdmin && antes.ativo && (!depois.isAdmin || !depois.ativo);
     if (perdeAdmin &&
         equipe.where((u) => u.isAdmin && u.ativo && u.id != antes.id).isEmpty) {
       throw StateError(
-          'Não é possível remover ou bloquear o último administrador ativo.');
+        'Não é possível remover ou bloquear o último administrador ativo.',
+      );
     }
     final normalizado = depois.copyWith(
-        permissoes: Permissao.normalizar(depois.permissoes));
-    final batch = _db.batch();
+      permissoes: Permissao.normalizar(depois.permissoes),
+    );
+    final batch = Banco.db.batch();
     batch.update(_col.doc(antes.id), {
       ...normalizado.toMap(),
       'atualizadoEm': FieldValue.serverTimestamp(),
     });
-    AuditoriaRepository.noBatch(batch, 'user.update', 'Funcionário alterado',
-        entidade: 'usuario',
-        entidadeId: antes.id,
-        antes: antes.toMap(),
-        depois: normalizado.toMap());
+    AuditoriaRepository.noBatch(
+      batch,
+      'user.update',
+      'Funcionário alterado',
+      entidade: 'usuario',
+      entidadeId: antes.id,
+      antes: antes.toMap(),
+      depois: normalizado.toMap(),
+    );
     semAguardar(batch.commit(), 'usuário ${antes.nome}');
   }
 
@@ -118,11 +160,14 @@ class UsuarioRepository {
   Future<void> enviarRedefinicaoSenha(Usuario usuario) async {
     await FirebaseAuth.instance.sendPasswordResetEmail(email: usuario.email);
     AuditoriaRepository.registrar(
-        'user.password_reset', 'E-mail de redefinição de senha enviado',
-        entidade: 'usuario', entidadeId: usuario.id);
+      'user.password_reset',
+      'E-mail de redefinição de senha enviado',
+      entidade: 'usuario',
+      entidadeId: usuario.id,
+    );
   }
 
-  /// O próprio usuário altera o nome exibido.
+  /// O próprio usuário altera o nome exibido nesta loja.
   void alterarMeuNome(Usuario eu, String nome) {
     semAguardar(
       _col.doc(eu.id).update({
@@ -132,11 +177,14 @@ class UsuarioRepository {
       }),
       'perfil',
     );
-    AuditoriaRepository.registrar('profile.update', 'Perfil alterado',
-        entidade: 'usuario',
-        entidadeId: eu.id,
-        antes: {'nome': eu.nome},
-        depois: {'nome': nome});
+    AuditoriaRepository.registrar(
+      'profile.update',
+      'Perfil alterado',
+      entidade: 'usuario',
+      entidadeId: eu.id,
+      antes: {'nome': eu.nome},
+      depois: {'nome': nome},
+    );
   }
 
   /// Troca a senha confirmando a senha atual. Precisa de internet.
@@ -146,7 +194,11 @@ class UsuarioRepository {
       EmailAuthProvider.credential(email: conta.email!, password: senhaAtual),
     );
     await conta.updatePassword(novaSenha);
-    AuditoriaRepository.registrar('profile.password', 'Senha alterada',
-        entidade: 'usuario', entidadeId: conta.uid);
+    AuditoriaRepository.registrar(
+      'profile.password',
+      'Senha alterada',
+      entidade: 'usuario',
+      entidadeId: conta.uid,
+    );
   }
 }

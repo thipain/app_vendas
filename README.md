@@ -53,12 +53,32 @@ Sistema completo de PDV para adega/loja, com todas as funções do AdegaPDV (ver
 - **Atualização automática** pelas Releases do GitHub (APK no Android, instalador no Windows)
 - Layout adaptável: menu em gaveta no celular e menu lateral fixo no PC
 
+### Várias lojas (multiloja)
+
+O mesmo app atende várias lojas (clientes), cada uma com seus próprios produtos, vendas,
+caixa, equipe e configurações, em `lojas/{loja}/...` no Firestore. As regras do Firestore
+só liberam os dados de uma loja para os membros ativos dela.
+
+- **Dono do sistema**: a conta do primeiro acesso. No menu da conta, **Painel do sistema**
+  cadastra lojas e o administrador de cada uma, adiciona administradores, renomeia e
+  **bloqueia/libera** lojas (loja bloqueada: ninguém da equipe entra). O dono pode entrar
+  em qualquer loja para dar suporte.
+- **Administrador da loja**: cadastra a própria equipe em **Equipe e acessos**.
+- Quem trabalha em mais de uma loja usa o mesmo e-mail e senha e escolhe a loja ao entrar
+  (**Trocar de loja** no menu da conta). O app lembra a última loja aberta no aparelho.
+- **Migração**: os dados da versão anterior (antes das lojas) aparecem no Painel do sistema
+  com o botão **Migrar**, que os copia para uma loja nova. Os originais ficam intactos.
+
+Os limites do plano gratuito do Firebase são somados entre todas as lojas; com vários
+clientes, ative o plano **Blaze** (pago por uso).
+
 ### Primeiro acesso e equipe
 
-Na primeira vez que alguém entra no sistema, o app pede o nome e transforma essa conta no
-**administrador**. Depois disso, novos funcionários são cadastrados pelo administrador em
-**Equipe e acessos** (precisa de internet). Contas criadas direto no Console do Firebase não
-têm acesso até serem cadastradas na equipe.
+Na primeira vez que alguém entra num banco vazio, o app pede o nome da loja e o nome da
+pessoa: essa conta vira a **dona do sistema** e administradora da primeira loja. Os
+funcionários são cadastrados pelo administrador em **Equipe e acessos** (precisa de
+internet). Contas criadas direto no Console do Firebase não têm acesso até serem
+cadastradas numa loja.
 
 ## Estrutura
 

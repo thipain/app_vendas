@@ -1,71 +1,123 @@
 rules_version = '2';
 
-// Regras de acesso do App Vendas.
-// Publicadas com: firebase deploy --only firestore (ou cole no Console >
-// Firestore Database > Regras).
+// Regras de acesso do App Vendas (multiloja).
+// Publicadas com: firebase deploy --only firestore
 //
-// - Só membros ativos da equipe (documento em /usuarios/{uid} com ativo=true)
-//   leem e gravam os dados da loja.
-// - Equipe, permissões e configurações da loja só o administrador altera.
-// - No primeiro acesso (sem /config/sistema), a conta logada pode se
-//   cadastrar como administrador.
-// - A auditoria só aceita novos registros: nunca é alterada nem apagada.
+// - Cada loja guarda tudo em /lojas/{loja}/... e só os membros ativos dela
+//   (lojas/{loja}/membros/{uid} com ativo=true) leem e gravam esses dados.
+// - Loja bloqueada (ativa=false): ninguém da equipe acessa.
+// - Equipe e configurações da loja: só o administrador da loja altera.
+// - Dono do sistema (config/sistema): cadastra/bloqueia lojas e acessa todas.
+// - Na configuração inicial (sem config/sistema), a conta logada cria o
+//   sistema e a primeira loja na mesma gravação.
+// - Auditoria só aceita novos registros: nunca é alterada nem apagada.
 service cloud.firestore {
   match /databases/{database}/documents {
     function logado() {
       return request.auth != null;
     }
-    function perfil() {
-      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    function caminhoSistema() {
+      return /databases/$(database)/documents/config/sistema;
     }
-    function ativo() {
-      return logado()
-        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
-        && perfil().ativo == true;
+    function dono() {
+      return logado() && exists(caminhoSistema()) && (
+        get(caminhoSistema()).data.adminInicial == request.auth.uid
+        || request.auth.uid in get(caminhoSistema()).data.get('superAdmins', []));
     }
-    function admin() {
-      return ativo() && perfil().papel == 'admin';
+    // Gravação da configuração inicial, que cria config/sistema junto.
+    function donoNaConfiguracao() {
+      return logado() && !exists(caminhoSistema())
+        && existsAfter(caminhoSistema())
+        && getAfter(caminhoSistema()).data.adminInicial == request.auth.uid;
     }
-    function semAdministrador() {
-      return !exists(/databases/$(database)/documents/config/sistema);
+    function caminhoMembro(loja) {
+      return /databases/$(database)/documents/lojas/$(loja)/membros/$(request.auth.uid);
     }
-
-    match /usuarios/{uid} {
-      allow read: if ativo() || (logado() && request.auth.uid == uid);
-      allow create: if admin()
-        || (logado() && request.auth.uid == uid && semAdministrador()
-            && request.resource.data.papel == 'admin'
-            && request.resource.data.ativo == true);
-      // O próprio usuário só altera o nome; o resto é com o administrador.
-      allow update: if admin()
-        || (ativo() && request.auth.uid == uid
-            && request.resource.data.diff(resource.data).affectedKeys()
-                 .hasOnly(['nome', 'nomeBusca', 'atualizadoEm']));
-      allow delete: if false;
+    function lojaAtiva(loja) {
+      return get(/databases/$(database)/documents/lojas/$(loja)).data.get('ativa', true) == true;
+    }
+    function ativoNa(loja) {
+      return logado() && exists(caminhoMembro(loja))
+        && get(caminhoMembro(loja)).data.ativo == true
+        && lojaAtiva(loja);
+    }
+    function adminNa(loja) {
+      return ativoNa(loja) && get(caminhoMembro(loja)).data.papel == 'admin';
+    }
+    function acessa(loja) {
+      return ativoNa(loja) || dono();
     }
 
     match /config/sistema {
       allow read: if logado();
-      allow create: if logado() && semAdministrador();
+      allow create: if logado()
+        && request.resource.data.adminInicial == request.auth.uid;
+      allow update: if dono();
+      allow delete: if false;
+    }
+
+    // E-mail → uid, para vincular a mesma pessoa a mais de uma loja.
+    match /contas/{email} {
+      allow read, create: if logado();
+      allow update: if dono();
+      allow delete: if false;
+    }
+
+    match /auditoriaSistema/{id} {
+      allow read, create: if dono();
       allow update, delete: if false;
     }
 
-    match /config/{doc} {
-      allow read: if ativo();
-      allow write: if admin();
+    match /lojas/{loja} {
+      allow read: if acessa(loja) || (logado() && exists(caminhoMembro(loja)));
+      allow create: if dono() || donoNaConfiguracao();
+      allow update: if dono();
+      allow delete: if false;
+
+      match /membros/{uid} {
+        allow read: if acessa(loja) || (logado() && request.auth.uid == uid);
+        allow create: if adminNa(loja) || dono() || donoNaConfiguracao();
+        // O próprio usuário só altera o nome; o resto é com o administrador.
+        allow update: if adminNa(loja) || dono()
+          || (ativoNa(loja) && request.auth.uid == uid
+              && request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(['nome', 'nomeBusca', 'atualizadoEm']));
+        allow delete: if false;
+      }
+
+      match /config/{doc} {
+        allow read: if acessa(loja);
+        allow write: if adminNa(loja) || dono();
+      }
+
+      match /auditoria/{id} {
+        allow read, create: if acessa(loja);
+        allow update, delete: if false;
+      }
+
+      match /{colecao}/{id} {
+        allow read, write: if acessa(loja) && colecao in [
+          'produtos', 'clientes', 'vendas', 'caixas', 'movimentosCaixa',
+          'comandas', 'movimentosEstoque', 'notasEntrada', 'receitas',
+          'operacoesEstoque', 'retiradas', 'ponto'
+        ];
+      }
     }
 
-    match /auditoria/{id} {
-      allow read: if ativo();
-      allow create: if ativo();
-      allow update, delete: if false;
+    // Consulta "em quais lojas eu trabalho" (collection group de membros).
+    match /{caminho=**}/membros/{uid} {
+      allow read: if logado() && resource.data.uid == request.auth.uid;
     }
 
+    // Dados da versão anterior às lojas: só o dono do sistema lê, para migrar.
+    match /config/loja {
+      allow read: if dono();
+    }
     match /{colecao}/{id} {
-      allow read, write: if ativo() && colecao in [
+      allow read: if dono() && colecao in [
         'produtos', 'clientes', 'vendas', 'caixas', 'movimentosCaixa',
         'comandas', 'movimentosEstoque', 'notasEntrada', 'receitas',
-        'operacoesEstoque', 'retiradas', 'ponto'
+        'operacoesEstoque', 'retiradas', 'ponto', 'auditoria', 'usuarios'
       ];
     }
   }

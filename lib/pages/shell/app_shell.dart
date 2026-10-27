@@ -16,6 +16,7 @@ import '../../widgets/foto_produto.dart';
 import '../../widgets/largura_maxima.dart';
 import '../../widgets/sync_status_icon.dart';
 import '../calculadora/calculadora_page.dart';
+import '../sistema/painel_sistema_page.dart';
 import 'modulos.dart';
 
 /// Estrutura principal: menu lateral agrupado (fixo no PC, gaveta no
@@ -25,9 +26,10 @@ class AppShell extends StatefulWidget {
 
   /// Abre um módulo a partir de qualquer tela (ex.: atalho do painel).
   static void abrir(BuildContext context, String id, {Object? argumento}) {
-    context
-        .findAncestorStateOfType<_AppShellState>()
-        ?._abrir(id, argumento: argumento);
+    context.findAncestorStateOfType<_AppShellState>()?._abrir(
+      id,
+      argumento: argumento,
+    );
   }
 
   @override
@@ -49,8 +51,10 @@ class _AppShellState extends State<AppShell> {
   void initState() {
     super.initState();
     final p = _permitidos;
-    _atual = p.firstWhere((m) => m.id == 'dashboard',
-        orElse: () => p.firstWhere((m) => m.id == 'vendas'));
+    _atual = p.firstWhere(
+      (m) => m.id == 'dashboard',
+      orElse: () => p.firstWhere((m) => m.id == 'vendas'),
+    );
   }
 
   void _abrir(String id, {Object? argumento}) {
@@ -70,6 +74,11 @@ class _AppShellState extends State<AppShell> {
     switch (opcao) {
       case 'perfil':
         _abrir('perfil');
+      case 'loja':
+        Sessao.instancia.trocarLoja?.call();
+      case 'painel':
+        await Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const PainelSistemaPage()));
       case 'atualizar':
         await verificarAtualizacao(context, avisarSemNovidade: true);
       case 'sobre':
@@ -84,7 +93,8 @@ class _AppShellState extends State<AppShell> {
         final ok = await confirmar(
           context,
           titulo: 'Sair',
-          mensagem: 'Operações ainda não sincronizadas continuarão salvas '
+          mensagem:
+              'Operações ainda não sincronizadas continuarão salvas '
               'neste aparelho e serão enviadas quando você entrar novamente '
               'com este mesmo usuário. Deseja sair?',
           confirmarTexto: 'Sair',
@@ -118,7 +128,11 @@ class _AppShellState extends State<AppShell> {
               builder: (_, c, _) => Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Chip(
-                  avatar: const Icon(Icons.circle, size: 10, color: Colors.green),
+                  avatar: const Icon(
+                    Icons.circle,
+                    size: 10,
+                    color: Colors.green,
+                  ),
                   label: Text(c.statusLoja),
                 ),
               ),
@@ -154,11 +168,25 @@ class _AppShellState extends State<AppShell> {
             itemBuilder: (_) => [
               PopupMenuItem(
                 enabled: false,
-                child: Text('${eu.nome}\n${eu.email}'),
+                child: Text(
+                  '${eu.nome}\n${eu.email}\n${Sessao.instancia.lojaNome}',
+                ),
               ),
               const PopupMenuItem(value: 'perfil', child: Text('Meu perfil')),
+              if (Sessao.instancia.trocarLoja != null)
+                const PopupMenuItem(
+                  value: 'loja',
+                  child: Text('Trocar de loja'),
+                ),
+              if (Sessao.instancia.isDono)
+                const PopupMenuItem(
+                  value: 'painel',
+                  child: Text('Painel do sistema'),
+                ),
               const PopupMenuItem(
-                  value: 'atualizar', child: Text('Verificar atualização')),
+                value: 'atualizar',
+                child: Text('Verificar atualização'),
+              ),
               const PopupMenuItem(value: 'sobre', child: Text('Sobre')),
               const PopupMenuItem(value: 'sair', child: Text('Sair')),
             ],
@@ -211,12 +239,19 @@ class _Menu extends StatelessWidget {
               builder: (_, c, _) => ListTile(
                 contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                 leading: FotoProduto(
-                    foto: c.logo, nome: c.nomeLoja, tamanho: 40, raio: 10),
-                title: Text(c.nomeLoja,
-                    style: t.textTheme.titleMedium,
-                    overflow: TextOverflow.ellipsis),
+                  foto: c.logo,
+                  nome: c.nomeLoja,
+                  tamanho: 40,
+                  raio: 10,
+                ),
+                title: Text(
+                  c.nomeLoja,
+                  style: t.textTheme.titleMedium,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 subtitle: Text(
-                    '${c.nomeSistema} · ${DateFormat('dd/MM/yyyy').format(DateTime.now())}'),
+                  '${c.nomeSistema} · ${DateFormat('dd/MM/yyyy').format(DateTime.now())}',
+                ),
               ),
             ),
             const Divider(),
@@ -228,16 +263,21 @@ class _Menu extends StatelessWidget {
                     if (modulos.any((m) => m.grupo == g && m.noMenu)) ...[
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-                        child: Text(g.toUpperCase(),
-                            style: t.textTheme.labelSmall
-                                ?.copyWith(color: t.colorScheme.outline)),
+                        child: Text(
+                          g.toUpperCase(),
+                          style: t.textTheme.labelSmall?.copyWith(
+                            color: t.colorScheme.outline,
+                          ),
+                        ),
                       ),
-                      for (final m
-                          in modulos.where((m) => m.grupo == g && m.noMenu))
+                      for (final m in modulos.where(
+                        (m) => m.grupo == g && m.noMenu,
+                      ))
                         ListTile(
                           dense: true,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(24)),
+                            borderRadius: BorderRadius.circular(24),
+                          ),
                           selected: m.id == atual,
                           selectedTileColor: t.colorScheme.secondaryContainer,
                           leading: Icon(m.icone),
@@ -254,13 +294,16 @@ class _Menu extends StatelessWidget {
             const Divider(height: 1),
             ListTile(
               leading: CircleAvatar(
-                child: Text(eu.nome.length >= 2
-                    ? eu.nome.substring(0, 2).toUpperCase()
-                    : eu.nome.toUpperCase()),
+                child: Text(
+                  eu.nome.length >= 2
+                      ? eu.nome.substring(0, 2).toUpperCase()
+                      : eu.nome.toUpperCase(),
+                ),
               ),
               title: Text(eu.nome, overflow: TextOverflow.ellipsis),
               subtitle: Text(
-                  eu.isAdmin ? 'Administrador' : 'Acesso personalizado'),
+                eu.isAdmin ? 'Administrador' : 'Acesso personalizado',
+              ),
               onTap: onPerfil,
             ),
           ],

@@ -5,11 +5,11 @@ import '../models/produto.dart';
 import 'auditoria_repository.dart';
 import 'estoque.dart';
 import 'offline.dart';
+import 'banco.dart';
 
 class ProdutoRepository {
   final _db = FirebaseFirestore.instance;
-  CollectionReference<Map<String, dynamic>> get _col =>
-      _db.collection('produtos');
+  CollectionReference<Map<String, dynamic>> get _col => Banco.col('produtos');
 
   /// Todos os produtos (ativos e desativados) em ordem alfabética.
   /// Funciona offline a partir do cache.
@@ -32,17 +32,23 @@ class ProdutoRepository {
       'atualizadoEm': FieldValue.serverTimestamp(),
     });
     final novo = produto.copyWith(id: ref.id, estoque: 0);
-    Estoque.movimentar(batch,
-        produto: novo,
-        quantidade: estoqueInicial,
-        tipo: MovimentoEstoque.inicial,
-        referenciaTipo: 'produto',
-        referenciaId: ref.id,
-        motivo: 'Estoque inicial do cadastro');
-    AuditoriaRepository.noBatch(batch, 'product.create', 'Produto cadastrado',
-        entidade: 'produto',
-        entidadeId: ref.id,
-        depois: {...produto.resumo(), 'estoqueInicial': estoqueInicial});
+    Estoque.movimentar(
+      batch,
+      produto: novo,
+      quantidade: estoqueInicial,
+      tipo: MovimentoEstoque.inicial,
+      referenciaTipo: 'produto',
+      referenciaId: ref.id,
+      motivo: 'Estoque inicial do cadastro',
+    );
+    AuditoriaRepository.noBatch(
+      batch,
+      'product.create',
+      'Produto cadastrado',
+      entidade: 'produto',
+      entidadeId: ref.id,
+      depois: {...produto.resumo(), 'estoqueInicial': estoqueInicial},
+    );
     semAguardar(batch.commit(), 'produto ${produto.nome}');
     return ref.id;
   }
@@ -54,33 +60,46 @@ class ProdutoRepository {
       ...depois.toMap(),
       'atualizadoEm': FieldValue.serverTimestamp(),
     });
-    AuditoriaRepository.noBatch(batch, 'product.update', 'Produto alterado',
-        entidade: 'produto',
-        entidadeId: antes.id,
-        antes: antes.resumo(),
-        depois: depois.resumo());
+    AuditoriaRepository.noBatch(
+      batch,
+      'product.update',
+      'Produto alterado',
+      entidade: 'produto',
+      entidadeId: antes.id,
+      antes: antes.resumo(),
+      depois: depois.resumo(),
+    );
     semAguardar(batch.commit(), 'produto ${depois.nome}');
   }
 
   /// Ajuste manual de saldo, com justificativa obrigatória.
-  void ajustarEstoque(Produto produto, int novoSaldo, String motivo,
-      {bool perda = false}) {
+  void ajustarEstoque(
+    Produto produto,
+    int novoSaldo,
+    String motivo, {
+    bool perda = false,
+  }) {
     final diferenca = novoSaldo - produto.estoque;
     if (diferenca == 0) return;
     final batch = _db.batch();
-    Estoque.movimentar(batch,
-        produto: produto,
-        quantidade: diferenca,
-        tipo: perda ? MovimentoEstoque.perda : MovimentoEstoque.ajuste,
-        referenciaTipo: 'produto',
-        referenciaId: produto.id,
-        motivo: motivo);
+    Estoque.movimentar(
+      batch,
+      produto: produto,
+      quantidade: diferenca,
+      tipo: perda ? MovimentoEstoque.perda : MovimentoEstoque.ajuste,
+      referenciaTipo: 'produto',
+      referenciaId: produto.id,
+      motivo: motivo,
+    );
     AuditoriaRepository.noBatch(
-        batch, 'stock.adjust', 'Ajuste manual de estoque',
-        entidade: 'produto',
-        entidadeId: produto.id,
-        antes: {'estoque': produto.estoque},
-        depois: {'estoque': novoSaldo, 'motivo': motivo});
+      batch,
+      'stock.adjust',
+      'Ajuste manual de estoque',
+      entidade: 'produto',
+      entidadeId: produto.id,
+      antes: {'estoque': produto.estoque},
+      depois: {'estoque': novoSaldo, 'motivo': motivo},
+    );
     semAguardar(batch.commit(), 'ajuste de ${produto.nome}');
   }
 
@@ -93,11 +112,12 @@ class ProdutoRepository {
       'atualizadoEm': FieldValue.serverTimestamp(),
     });
     AuditoriaRepository.noBatch(
-        batch,
-        ativo ? 'product.restore' : 'product.delete',
-        ativo ? 'Produto restaurado' : 'Produto desativado',
-        entidade: 'produto',
-        entidadeId: produto.id);
+      batch,
+      ativo ? 'product.restore' : 'product.delete',
+      ativo ? 'Produto restaurado' : 'Produto desativado',
+      entidade: 'produto',
+      entidadeId: produto.id,
+    );
     semAguardar(batch.commit(), 'produto ${produto.nome}');
   }
 }

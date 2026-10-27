@@ -5,10 +5,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../core/sessao.dart';
 import '../models/registro_auditoria.dart';
 import 'offline.dart';
+import 'banco.dart';
 
 /// Registro de acessos e operações sensíveis. Nunca é alterado nem apagado.
 class AuditoriaRepository {
-  static final _col = FirebaseFirestore.instance.collection('auditoria');
+  static CollectionReference<Map<String, dynamic>> get _col =>
+      Banco.col('auditoria');
 
   static Map<String, dynamic> _dados(
     String acao,
@@ -17,18 +19,17 @@ class AuditoriaRepository {
     String? entidadeId,
     Object? antes,
     Object? depois,
-  }) =>
-      {
-        'acao': acao,
-        'descricao': descricao,
-        'entidade': entidade,
-        'entidadeId': entidadeId,
-        'antes': antes,
-        'depois': depois,
-        'usuario': Sessao.instancia.autor,
-        'plataforma': Platform.operatingSystem,
-        'data': Timestamp.now(),
-      };
+  }) => {
+    'acao': acao,
+    'descricao': descricao,
+    'entidade': entidade,
+    'entidadeId': entidadeId,
+    'antes': antes,
+    'depois': depois,
+    'usuario': Sessao.instancia.autor,
+    'plataforma': Platform.operatingSystem,
+    'data': Timestamp.now(),
+  };
 
   /// Inclui o registro na mesma gravação atômica da operação.
   static void noBatch(
@@ -42,11 +43,14 @@ class AuditoriaRepository {
   }) {
     batch.set(
       _col.doc(),
-      _dados(acao, descricao,
-          entidade: entidade,
-          entidadeId: entidadeId,
-          antes: antes,
-          depois: depois),
+      _dados(
+        acao,
+        descricao,
+        entidade: entidade,
+        entidadeId: entidadeId,
+        antes: antes,
+        depois: depois,
+      ),
     );
   }
 
@@ -59,11 +63,16 @@ class AuditoriaRepository {
     Object? depois,
   }) {
     semAguardar(
-      _col.doc().set(_dados(acao, descricao,
+      _col.doc().set(
+        _dados(
+          acao,
+          descricao,
           entidade: entidade,
           entidadeId: entidadeId,
           antes: antes,
-          depois: depois)),
+          depois: depois,
+        ),
+      ),
       'auditoria $acao',
     );
   }

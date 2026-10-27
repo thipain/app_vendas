@@ -18,12 +18,21 @@ class Sessao extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Loja em uso e dados do sistema multiloja.
+  String lojaNome = '';
+
+  /// Dono do sistema: cadastra e bloqueia lojas e entra em qualquer uma.
+  bool isDono = false;
+
+  /// Volta para a escolha de loja (null quando a pessoa só tem uma loja).
+  VoidCallback? trocarLoja;
+
   bool pode(String permissao) => _usuario?.pode(permissao) ?? false;
   bool get isAdmin => _usuario?.isAdmin ?? false;
 
   /// Identificação gravada nos documentos para saber quem fez a operação.
   Map<String, dynamic> get autor => {
-        'uid': _usuario?.id ?? '',
-        'nome': _usuario?.nome ?? '',
-      };
+    'uid': _usuario?.id ?? '',
+    'nome': _usuario?.nome ?? '',
+  };
 }

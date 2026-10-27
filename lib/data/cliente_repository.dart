@@ -2,9 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/cliente.dart';
 import 'offline.dart';
+import 'banco.dart';
 
 class ClienteRepository {
-  final _col = FirebaseFirestore.instance.collection('clientes');
+  CollectionReference<Map<String, dynamic>> get _col => Banco.col('clientes');
 
   Stream<List<Cliente>> watchTodos() => _col
       .orderBy('nomeBusca')

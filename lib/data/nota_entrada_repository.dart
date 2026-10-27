@@ -8,11 +8,12 @@ import '../models/produto.dart';
 import 'auditoria_repository.dart';
 import 'estoque.dart';
 import 'offline.dart';
+import 'banco.dart';
 
 class NotaEntradaRepository {
   final _db = FirebaseFirestore.instance;
   CollectionReference<Map<String, dynamic>> get _col =>
-      _db.collection('notasEntrada');
+      Banco.col('notasEntrada');
 
   Stream<List<NotaEntrada>> watchPeriodo(DateTime inicio, DateTime fim) => _col
       .where('dataEntrada', isGreaterThanOrEqualTo: Timestamp.fromDate(inicio))
@@ -46,25 +47,32 @@ class NotaEntradaRepository {
     for (final i in itens) {
       if (i.quantidade <= 0 || i.quantidade > 1000000) {
         throw const RegraException(
-            'Selecione o produto e informe uma quantidade maior que zero.');
+          'Selecione o produto e informe uma quantidade maior que zero.',
+        );
       }
       if (!vistos.add(i.produtoId)) {
         throw const RegraException(
-            'O mesmo produto foi informado mais de uma vez na nota.');
+          'O mesmo produto foi informado mais de uma vez na nota.',
+        );
       }
       if (i.custoUnitario < 0) {
         throw const RegraException('O custo unitário não pode ser negativo.');
       }
     }
 
-    final antigos = {for (final i in antiga?.itens ?? <ItemNotaEntrada>[]) i.produtoId: i};
+    final antigos = {
+      for (final i in antiga?.itens ?? <ItemNotaEntrada>[]) i.produtoId: i,
+    };
     final novos = <String, ItemNotaEntrada>{};
     for (final i in itens) {
       final p = produtos[i.produtoId];
-      if (p == null) throw const RegraException('Um dos produtos não existe mais.');
+      if (p == null) {
+        throw const RegraException('Um dos produtos não existe mais.');
+      }
       if (!p.ativo && !antigos.containsKey(i.produtoId)) {
         throw RegraException(
-            '${p.nome}: produtos desativados não podem ser adicionados a uma nota.');
+          '${p.nome}: produtos desativados não podem ser adicionados a uma nota.',
+        );
       }
       final custo = i.custoUnitario > 0
           ? i.custoUnitario
@@ -82,12 +90,15 @@ class NotaEntradaRepository {
     final ids = {...antigos.keys, ...novos.keys};
     for (final id in ids) {
       final p = produtos[id];
-      if (p == null) throw const RegraException('Um dos produtos não existe mais.');
+      if (p == null) {
+        throw const RegraException('Um dos produtos não existe mais.');
+      }
       final mudanca =
           (novos[id]?.quantidade ?? 0) - (antigos[id]?.quantidade ?? 0);
       if (p.estoque + mudanca < 0) {
         throw RegraException(
-            '${p.nome}: não há saldo suficiente para reduzir essa quantidade da nota.');
+          '${p.nome}: não há saldo suficiente para reduzir essa quantidade da nota.',
+        );
       }
     }
 
@@ -95,7 +106,8 @@ class NotaEntradaRepository {
     final batch = _db.batch();
     final dados = {
       'dataEntrada': Timestamp.fromDate(
-          DateTime(dataEntrada.year, dataEntrada.month, dataEntrada.day)),
+        DateTime(dataEntrada.year, dataEntrada.month, dataEntrada.day),
+      ),
       'numero': numero.trim(),
       'fornecedor': fornecedor.trim(),
       'total': total,

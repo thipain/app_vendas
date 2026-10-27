@@ -12,6 +12,7 @@ import 'auditoria_repository.dart';
 import 'caixa_repository.dart';
 import 'estoque.dart';
 import 'offline.dart';
+import 'banco.dart';
 
 /// Linha do carrinho antes de virar venda.
 class ItemCarrinho {
@@ -22,10 +23,9 @@ class ItemCarrinho {
 
 class VendaRepository {
   final _db = FirebaseFirestore.instance;
-  CollectionReference<Map<String, dynamic>> get _vendas =>
-      _db.collection('vendas');
+  CollectionReference<Map<String, dynamic>> get _vendas => Banco.col('vendas');
   CollectionReference<Map<String, dynamic>> get _comandas =>
-      _db.collection('comandas');
+      Banco.col('comandas');
 
   Stream<List<Venda>> watchRecentes({int limite = 200}) => _vendas
       .orderBy('data', descending: true)
@@ -55,10 +55,13 @@ class VendaRepository {
     }
     for (final i in carrinho) {
       if (i.quantidade < 1) throw const RegraException('Quantidade inválida.');
-      if (!i.produto.ativo) throw const RegraException('Produto não encontrado.');
+      if (!i.produto.ativo) {
+        throw const RegraException('Produto não encontrado.');
+      }
       if (i.quantidade > i.produto.estoque) {
         throw RegraException(
-            '${i.produto.nome}: há somente ${i.produto.estoque} em estoque.');
+          '${i.produto.nome}: há somente ${i.produto.estoque} em estoque.',
+        );
       }
     }
   }
@@ -79,8 +82,11 @@ class VendaRepository {
     String? clienteNome,
   }) {
     final subtotal = itens.fold<int>(0, (s, i) => s + i.totalCentavos);
-    final desconto =
-        calcularDesconto(subtotal, descontoPercentual, descontoInformado);
+    final desconto = calcularDesconto(
+      subtotal,
+      descontoPercentual,
+      descontoInformado,
+    );
     final processados = processarPagamentos(pagamentos, subtotal - desconto);
     final eu = Sessao.instancia.atual;
     final venda = Venda(
@@ -100,16 +106,22 @@ class VendaRepository {
       vendedorNome: eu.nome,
       data: DateTime.now(),
     );
-    batch.set(ref, {...venda.toMap(), 'criadoEm': FieldValue.serverTimestamp()});
+    batch.set(ref, {
+      ...venda.toMap(),
+      'criadoEm': FieldValue.serverTimestamp(),
+    });
     final dinheiro = venda.valorEmDinheiro;
     if (dinheiro > 0) {
-      CaixaRepository.movimentoNoBatch(batch,
-          caixaId: caixa.id,
-          tipo: MovimentoCaixa.venda,
-          valor: dinheiro,
-          descricao:
-              comanda == null ? 'Venda concluída' : 'Fechamento de comanda',
-          vendaId: ref.id);
+      CaixaRepository.movimentoNoBatch(
+        batch,
+        caixaId: caixa.id,
+        tipo: MovimentoCaixa.venda,
+        valor: dinheiro,
+        descricao: comanda == null
+            ? 'Venda concluída'
+            : 'Fechamento de comanda',
+        vendaId: ref.id,
+      );
     }
     return venda;
   }
@@ -151,21 +163,27 @@ class VendaRepository {
       clienteNome: clienteNome,
     );
     for (final i in carrinho) {
-      Estoque.movimentar(batch,
-          produto: i.produto,
-          quantidade: -i.quantidade,
-          tipo: MovimentoEstoque.venda,
-          referenciaTipo: 'venda',
-          referenciaId: ref.id,
-          motivo: 'Venda finalizada');
+      Estoque.movimentar(
+        batch,
+        produto: i.produto,
+        quantidade: -i.quantidade,
+        tipo: MovimentoEstoque.venda,
+        referenciaTipo: 'venda',
+        referenciaId: ref.id,
+        motivo: 'Venda finalizada',
+      );
     }
-    AuditoriaRepository.noBatch(batch, 'sale.create', 'Venda registrada',
-        entidade: 'venda',
-        entidadeId: ref.id,
-        depois: {
-          'total': venda.total,
-          'pagamentos': venda.pagamentos.map((p) => p.toMap()).toList(),
-        });
+    AuditoriaRepository.noBatch(
+      batch,
+      'sale.create',
+      'Venda registrada',
+      entidade: 'venda',
+      entidadeId: ref.id,
+      depois: {
+        'total': venda.total,
+        'pagamentos': venda.pagamentos.map((p) => p.toMap()).toList(),
+      },
+    );
     semAguardar(batch.commit(), 'venda ${ref.id}');
     return venda;
   }
@@ -183,30 +201,38 @@ class VendaRepository {
     final atualizacao = <String, Object?>{};
     for (final i in carrinho) {
       final p = i.produto;
-      atualizacao['itens.${p.id}.quantidade'] =
-          FieldValue.increment(i.quantidade);
+      atualizacao['itens.${p.id}.quantidade'] = FieldValue.increment(
+        i.quantidade,
+      );
       atualizacao['itens.${p.id}.precoUnitario'] = p.preco;
       atualizacao['itens.${p.id}.nome'] = p.nome;
       atualizacao['itens.${p.id}.codigo'] = p.codigo;
       if (!existentes.contains(p.id)) {
         atualizacao['itens.${p.id}.adicionadoEm'] = Timestamp.now();
       }
-      Estoque.movimentar(batch,
-          produto: p,
-          quantidade: -i.quantidade,
-          tipo: MovimentoEstoque.comanda,
-          referenciaTipo: 'comanda',
-          referenciaId: comanda.id,
-          motivo: 'Item adicionado à comanda');
+      Estoque.movimentar(
+        batch,
+        produto: p,
+        quantidade: -i.quantidade,
+        tipo: MovimentoEstoque.comanda,
+        referenciaTipo: 'comanda',
+        referenciaId: comanda.id,
+        motivo: 'Item adicionado à comanda',
+      );
     }
     batch.update(ref, atualizacao);
     final subtotal = carrinho.fold<int>(
-        0, (s, i) => s + centavos(i.produto.preco) * i.quantidade);
+      0,
+      (s, i) => s + centavos(i.produto.preco) * i.quantidade,
+    );
     AuditoriaRepository.noBatch(
-        batch, 'tab.items_add', 'Itens adicionados à comanda',
-        entidade: 'comanda',
-        entidadeId: comanda.id,
-        depois: {'itens': carrinho.length, 'subtotal': deCentavos(subtotal)});
+      batch,
+      'tab.items_add',
+      'Itens adicionados à comanda',
+      entidade: 'comanda',
+      entidadeId: comanda.id,
+      depois: {'itens': carrinho.length, 'subtotal': deCentavos(subtotal)},
+    );
     semAguardar(batch.commit(), 'itens da comanda ${comanda.nome}');
   }
 
@@ -223,8 +249,12 @@ class VendaRepository {
     if (caixa == null) {
       throw const RegraException('Abra o caixa antes de fechar uma comanda.');
     }
-    if (!comanda.isAberta) throw const RegraException('Comanda não encontrada.');
-    if (comanda.itens.isEmpty) throw const RegraException('A comanda está vazia.');
+    if (!comanda.isAberta) {
+      throw const RegraException('Comanda não encontrada.');
+    }
+    if (comanda.itens.isEmpty) {
+      throw const RegraException('A comanda está vazia.');
+    }
     final ref = _vendas.doc();
     final batch = _db.batch();
     final venda = _gravarVenda(
@@ -251,27 +281,36 @@ class VendaRepository {
       'fechadaEm': Timestamp.now(),
       'vendaId': ref.id,
     });
-    AuditoriaRepository.noBatch(batch, 'tab.close', 'Comanda fechada',
-        entidade: 'comanda',
-        entidadeId: comanda.id,
-        depois: {
-          'vendaId': ref.id,
-          'total': venda.total,
-          'pagamentos': venda.pagamentos.map((p) => p.toMap()).toList(),
-          'troco': venda.troco,
-        });
+    AuditoriaRepository.noBatch(
+      batch,
+      'tab.close',
+      'Comanda fechada',
+      entidade: 'comanda',
+      entidadeId: comanda.id,
+      depois: {
+        'vendaId': ref.id,
+        'total': venda.total,
+        'pagamentos': venda.pagamentos.map((p) => p.toMap()).toList(),
+        'troco': venda.troco,
+      },
+    );
     semAguardar(batch.commit(), 'fechamento da comanda ${comanda.nome}');
     return venda;
   }
 
   /// Cancela a venda: devolve os itens ao estoque e, se houve pagamento em
   /// dinheiro, registra o estorno no caixa aberto agora.
-  void cancelar(Venda venda, String motivo,
-      {required Caixa? caixaAberto, required Map<String, Produto> produtos}) {
+  void cancelar(
+    Venda venda,
+    String motivo, {
+    required Caixa? caixaAberto,
+    required Map<String, Produto> produtos,
+  }) {
     final m = motivo.trim();
     if (m.length < 5) {
       throw const RegraException(
-          'Informe um motivo com pelo menos 5 caracteres.');
+        'Informe um motivo com pelo menos 5 caracteres.',
+      );
     }
     if (venda.isCancelada) {
       throw const RegraException('Venda não encontrada ou já cancelada.');
@@ -279,7 +318,8 @@ class VendaRepository {
     final dinheiro = venda.valorEmDinheiro;
     if (dinheiro > 0 && caixaAberto == null) {
       throw const RegraException(
-          'Abra o caixa antes de estornar uma venda recebida em dinheiro.');
+        'Abra o caixa antes de estornar uma venda recebida em dinheiro.',
+      );
     }
     final motivoFinal = m.length > 255 ? m.substring(0, 255) : m;
     final batch = _db.batch();
@@ -292,29 +332,38 @@ class VendaRepository {
       },
     });
     for (final i in venda.itens) {
-      final p = produtos[i.produtoId] ??
+      final p =
+          produtos[i.produtoId] ??
           Produto(id: i.produtoId, nome: i.nome, preco: i.precoUnitario);
-      Estoque.movimentar(batch,
-          produto: p,
-          quantidade: i.quantidade,
-          tipo: MovimentoEstoque.estorno,
-          referenciaTipo: 'venda',
-          referenciaId: venda.id,
-          motivo: 'Cancelamento: $motivoFinal');
+      Estoque.movimentar(
+        batch,
+        produto: p,
+        quantidade: i.quantidade,
+        tipo: MovimentoEstoque.estorno,
+        referenciaTipo: 'venda',
+        referenciaId: venda.id,
+        motivo: 'Cancelamento: $motivoFinal',
+      );
     }
     if (dinheiro > 0) {
-      CaixaRepository.movimentoNoBatch(batch,
-          caixaId: caixaAberto!.id,
-          tipo: MovimentoCaixa.estorno,
-          valor: dinheiro,
-          descricao: 'Estorno: $motivoFinal',
-          vendaId: venda.id);
+      CaixaRepository.movimentoNoBatch(
+        batch,
+        caixaId: caixaAberto!.id,
+        tipo: MovimentoCaixa.estorno,
+        valor: dinheiro,
+        descricao: 'Estorno: $motivoFinal',
+        vendaId: venda.id,
+      );
     }
-    AuditoriaRepository.noBatch(batch, 'sale.cancel', 'Venda cancelada',
-        entidade: 'venda',
-        entidadeId: venda.id,
-        antes: {'total': venda.total, 'status': venda.status},
-        depois: {'motivo': motivoFinal});
+    AuditoriaRepository.noBatch(
+      batch,
+      'sale.cancel',
+      'Venda cancelada',
+      entidade: 'venda',
+      entidadeId: venda.id,
+      antes: {'total': venda.total, 'status': venda.status},
+      depois: {'motivo': motivoFinal},
+    );
     semAguardar(batch.commit(), 'cancelamento da venda ${venda.id}');
   }
 
@@ -324,18 +373,22 @@ class VendaRepository {
     final t = texto.replaceAll('\r\n', '\n').trim();
     if (t.length > 12000) {
       throw const RegraException(
-          'O comprovante pode ter no máximo 12.000 caracteres.');
+        'O comprovante pode ter no máximo 12.000 caracteres.',
+      );
     }
     final batch = _db.batch();
     batch.update(_vendas.doc(venda.id), {
       'textoComprovante': t.isEmpty ? FieldValue.delete() : t,
     });
     AuditoriaRepository.noBatch(
-        batch, 'sale.receipt_edit', 'Comprovante editado',
-        entidade: 'venda',
-        entidadeId: venda.id,
-        antes: {'texto': venda.textoComprovante},
-        depois: {'texto': t.isEmpty ? null : t});
+      batch,
+      'sale.receipt_edit',
+      'Comprovante editado',
+      entidade: 'venda',
+      entidadeId: venda.id,
+      antes: {'texto': venda.textoComprovante},
+      depois: {'texto': t.isEmpty ? null : t},
+    );
     semAguardar(batch.commit(), 'comprovante ${venda.id}');
   }
 }

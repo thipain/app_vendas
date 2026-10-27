@@ -6,11 +6,12 @@ import 'package:flutter/foundation.dart';
 import '../models/config_loja.dart';
 import 'auditoria_repository.dart';
 import 'offline.dart';
+import 'banco.dart';
 
 /// Configurações da loja, compartilhadas por todos os aparelhos.
 class ConfigRepository {
-  static final _doc =
-      FirebaseFirestore.instance.collection('config').doc('loja');
+  static DocumentReference<Map<String, dynamic>> get _doc =>
+      Banco.col('config').doc('loja');
 
   /// Valor atual, atualizado em tempo real (e disponível offline pelo cache).
   static final atual = ValueNotifier<ConfigLoja>(const ConfigLoja());
@@ -18,14 +19,15 @@ class ConfigRepository {
 
   static void iniciar() {
     _sub ??= _doc.snapshots().listen(
-          (s) => atual.value = ConfigLoja.fromMap(s.data()),
-          onError: (Object e) => debugPrint('Configurações: $e'),
-        );
+      (s) => atual.value = ConfigLoja.fromMap(s.data()),
+      onError: (Object e) => debugPrint('Configurações: $e'),
+    );
   }
 
   static void parar() {
     _sub?.cancel();
     _sub = null;
+    atual.value = const ConfigLoja();
   }
 
   static void salvar(ConfigLoja nova) {

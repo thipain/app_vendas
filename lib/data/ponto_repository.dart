@@ -10,6 +10,7 @@ import '../core/sessao.dart';
 import '../models/registro_ponto.dart';
 import 'auditoria_repository.dart';
 import 'offline.dart';
+import 'banco.dart';
 
 class Localizacao {
   final double? latitude;
@@ -20,14 +21,15 @@ class Localizacao {
 
 class PontoRepository {
   final _db = FirebaseFirestore.instance;
-  CollectionReference<Map<String, dynamic>> get _col => _db.collection('ponto');
+  CollectionReference<Map<String, dynamic>> get _col => Banco.col('ponto');
 
-  Stream<List<RegistroPonto>> watchPeriodo(DateTime inicio, DateTime fim) => _col
-      .where('data', isGreaterThanOrEqualTo: Timestamp.fromDate(inicio))
-      .where('data', isLessThan: Timestamp.fromDate(fim))
-      .orderBy('data', descending: true)
-      .snapshots(includeMetadataChanges: true)
-      .map((s) => s.docs.map(RegistroPonto.fromDoc).toList());
+  Stream<List<RegistroPonto>> watchPeriodo(DateTime inicio, DateTime fim) =>
+      _col
+          .where('data', isGreaterThanOrEqualTo: Timestamp.fromDate(inicio))
+          .where('data', isLessThan: Timestamp.fromDate(fim))
+          .orderBy('data', descending: true)
+          .snapshots(includeMetadataChanges: true)
+          .map((s) => s.docs.map(RegistroPonto.fromDoc).toList());
 
   /// Último registro do usuário (de qualquer dia): define se o próximo é
   /// entrada ou saída.
@@ -40,8 +42,8 @@ class PontoRepository {
 
   static String proximoTipo(RegistroPonto? ultimo) =>
       ultimo?.tipo == RegistroPonto.entrada
-          ? RegistroPonto.saida
-          : RegistroPonto.entrada;
+      ? RegistroPonto.saida
+      : RegistroPonto.entrada;
 
   /// Obtém a coordenada e tenta converter em endereço (OpenStreetMap).
   Future<Localizacao> obterLocalizacao() async {
@@ -66,17 +68,19 @@ class PontoRepository {
       var endereco =
           '${pos.latitude.toStringAsFixed(6)}, ${pos.longitude.toStringAsFixed(6)}';
       try {
-        final r = await http.get(
-          Uri.https('nominatim.openstreetmap.org', '/reverse', {
-            'format': 'jsonv2',
-            'lat': '${pos.latitude}',
-            'lon': '${pos.longitude}',
-          }),
-          headers: {
-            'Accept-Language': 'pt-BR',
-            'User-Agent': 'app_vendas (github.com/thipain/app_vendas)',
-          },
-        ).timeout(const Duration(seconds: 8));
+        final r = await http
+            .get(
+              Uri.https('nominatim.openstreetmap.org', '/reverse', {
+                'format': 'jsonv2',
+                'lat': '${pos.latitude}',
+                'lon': '${pos.longitude}',
+              }),
+              headers: {
+                'Accept-Language': 'pt-BR',
+                'User-Agent': 'app_vendas (github.com/thipain/app_vendas)',
+              },
+            )
+            .timeout(const Duration(seconds: 8));
         if (r.statusCode == 200) {
           final nome = (jsonDecode(r.body) as Map)['display_name'] as String?;
           if (nome != null && nome.isNotEmpty) endereco = nome;
@@ -85,7 +89,10 @@ class PontoRepository {
         debugPrint('Endereço do ponto: $e');
       }
       return Localizacao(
-          latitude: pos.latitude, longitude: pos.longitude, endereco: endereco);
+        latitude: pos.latitude,
+        longitude: pos.longitude,
+        endereco: endereco,
+      );
     } catch (e) {
       debugPrint('Localização do ponto: $e');
       return const Localizacao(endereco: 'Geolocalização indisponível');
@@ -98,7 +105,8 @@ class PontoRepository {
     if (ultimo != null &&
         DateTime.now().difference(ultimo.data) < const Duration(seconds: 60)) {
       throw const RegraException(
-          'Aguarde um minuto antes de registrar novamente.');
+        'Aguarde um minuto antes de registrar novamente.',
+      );
     }
     final tipo = proximoTipo(ultimo);
     final eu = Sessao.instancia.atual;
@@ -116,8 +124,14 @@ class PontoRepository {
       'endereco': endereco,
       'data': Timestamp.now(),
     });
-    AuditoriaRepository.noBatch(batch, 'time.punch', 'Ponto registrado: $tipo',
-        entidade: 'ponto', entidadeId: ref.id, depois: {'endereco': endereco});
+    AuditoriaRepository.noBatch(
+      batch,
+      'time.punch',
+      'Ponto registrado: $tipo',
+      entidade: 'ponto',
+      entidadeId: ref.id,
+      depois: {'endereco': endereco},
+    );
     semAguardar(batch.commit(), 'ponto');
     return tipo;
   }

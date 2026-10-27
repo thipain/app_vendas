@@ -5,15 +5,16 @@ import '../core/sessao.dart';
 import '../models/caixa.dart';
 import 'auditoria_repository.dart';
 import 'offline.dart';
+import 'banco.dart';
 
 /// Abertura e fechamento de caixa, suprimentos e sangrias. Somente dinheiro
 /// movimenta o caixa; Pix, cartões e VR não passam pela gaveta.
 class CaixaRepository {
   static final _db = FirebaseFirestore.instance;
   static CollectionReference<Map<String, dynamic>> get caixas =>
-      _db.collection('caixas');
+      Banco.col('caixas');
   static CollectionReference<Map<String, dynamic>> get movimentos =>
-      _db.collection('movimentosCaixa');
+      Banco.col('movimentosCaixa');
 
   /// Caixa aberto no momento (ou null).
   Stream<Caixa?> watchAberto() => caixas
@@ -34,8 +35,11 @@ class CaixaRepository {
   Stream<List<MovimentoCaixa>> watchMovimentos(String caixaId) => movimentos
       .where('caixaId', isEqualTo: caixaId)
       .snapshots(includeMetadataChanges: true)
-      .map((s) => s.docs.map(MovimentoCaixa.fromDoc).toList()
-        ..sort((a, b) => b.data.compareTo(a.data)));
+      .map(
+        (s) =>
+            s.docs.map(MovimentoCaixa.fromDoc).toList()
+              ..sort((a, b) => b.data.compareTo(a.data)),
+      );
 
   /// Inclui um movimento do caixa no batch de outra operação (venda, estorno).
   static void movimentoNoBatch(
@@ -69,13 +73,21 @@ class CaixaRepository {
       'abertoPor': Sessao.instancia.autor,
       'abertoEm': Timestamp.now(),
     });
-    movimentoNoBatch(batch,
-        caixaId: ref.id,
-        tipo: MovimentoCaixa.abertura,
-        valor: valor,
-        descricao: 'Abertura de caixa');
-    AuditoriaRepository.noBatch(batch, 'cash.open', 'Caixa aberto',
-        entidade: 'caixa', entidadeId: ref.id, depois: {'valorAbertura': valor});
+    movimentoNoBatch(
+      batch,
+      caixaId: ref.id,
+      tipo: MovimentoCaixa.abertura,
+      valor: valor,
+      descricao: 'Abertura de caixa',
+    );
+    AuditoriaRepository.noBatch(
+      batch,
+      'cash.open',
+      'Caixa aberto',
+      entidade: 'caixa',
+      entidadeId: ref.id,
+      depois: {'valorAbertura': valor},
+    );
     semAguardar(batch.commit(), 'abertura de caixa');
     return ref.id;
   }
@@ -95,27 +107,34 @@ class CaixaRepository {
     }
     if (sangria && (valor * 100).round() > (saldoAtual * 100).round()) {
       throw const RegraException(
-          'A sangria é maior que o saldo disponível no caixa.');
+        'A sangria é maior que o saldo disponível no caixa.',
+      );
     }
     final batch = _db.batch();
-    movimentoNoBatch(batch,
-        caixaId: caixa.id,
-        tipo: sangria ? MovimentoCaixa.sangria : MovimentoCaixa.suprimento,
-        valor: valor,
-        descricao: motivo.trim());
+    movimentoNoBatch(
+      batch,
+      caixaId: caixa.id,
+      tipo: sangria ? MovimentoCaixa.sangria : MovimentoCaixa.suprimento,
+      valor: valor,
+      descricao: motivo.trim(),
+    );
     AuditoriaRepository.noBatch(
-        batch,
-        sangria ? 'cash.withdrawal' : 'cash.supply',
-        sangria ? 'Sangria registrada' : 'Suprimento registrado',
-        entidade: 'caixa',
-        entidadeId: caixa.id,
-        depois: {'valor': valor, 'descricao': motivo.trim()});
+      batch,
+      sangria ? 'cash.withdrawal' : 'cash.supply',
+      sangria ? 'Sangria registrada' : 'Suprimento registrado',
+      entidade: 'caixa',
+      entidadeId: caixa.id,
+      depois: {'valor': valor, 'descricao': motivo.trim()},
+    );
     semAguardar(batch.commit(), 'movimento de caixa');
   }
 
   /// Fecha o caixa e retorna a diferença entre o contado e o esperado.
-  double fechar(Caixa caixa,
-      {required double contado, required double esperado}) {
+  double fechar(
+    Caixa caixa, {
+    required double contado,
+    required double esperado,
+  }) {
     if (contado < 0) throw const RegraException('Informe um valor válido.');
     final diferenca = ((contado - esperado) * 100).round() / 100;
     final batch = _db.batch();
@@ -127,19 +146,25 @@ class CaixaRepository {
       'fechadoPor': Sessao.instancia.autor,
       'fechadoEm': Timestamp.now(),
     });
-    movimentoNoBatch(batch,
-        caixaId: caixa.id,
-        tipo: MovimentoCaixa.fechamento,
-        valor: contado,
-        descricao: 'Fechamento de caixa');
-    AuditoriaRepository.noBatch(batch, 'cash.close', 'Caixa fechado',
-        entidade: 'caixa',
-        entidadeId: caixa.id,
-        depois: {
-          'contado': contado,
-          'esperado': esperado,
-          'diferenca': diferenca,
-        });
+    movimentoNoBatch(
+      batch,
+      caixaId: caixa.id,
+      tipo: MovimentoCaixa.fechamento,
+      valor: contado,
+      descricao: 'Fechamento de caixa',
+    );
+    AuditoriaRepository.noBatch(
+      batch,
+      'cash.close',
+      'Caixa fechado',
+      entidade: 'caixa',
+      entidadeId: caixa.id,
+      depois: {
+        'contado': contado,
+        'esperado': esperado,
+        'diferenca': diferenca,
+      },
+    );
     semAguardar(batch.commit(), 'fechamento de caixa');
     return diferenca;
   }

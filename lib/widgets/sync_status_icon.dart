@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../data/banco.dart';
 
 /// Ícone na AppBar que mostra se há dados aguardando sincronização.
 ///
@@ -26,8 +26,7 @@ class _SyncStatusIconState extends State<SyncStatusIcon> {
   void initState() {
     super.initState();
     for (final nome in _colecoes) {
-      _subs.add(FirebaseFirestore.instance
-          .collection(nome)
+      _subs.add(Banco.col(nome)
           .snapshots(includeMetadataChanges: true)
           .listen((s) {
         setState(() {

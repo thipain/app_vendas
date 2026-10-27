@@ -174,6 +174,7 @@ class _NovoFuncionarioDialogState extends State<_NovoFuncionarioDialog> {
         senha: senha,
         papel: _papel,
         permissoes: _papel == Usuario.papelAdmin ? const {} : _permissoes,
+        lojaNome: Sessao.instancia.lojaNome,
       );
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
@@ -217,7 +218,9 @@ class _NovoFuncionarioDialogState extends State<_NovoFuncionarioDialog> {
                 obscureText: !_verSenha,
                 decoration: InputDecoration(
                   labelText: 'Senha *',
-                  helperText: 'Pelo menos 8 caracteres',
+                  helperText: 'Pelo menos 8 caracteres. Se a pessoa já usa o '
+                      'app em outra loja, a senha dela continua a mesma.',
+                  helperMaxLines: 2,
                   suffixIcon: IconButton(
                     icon: Icon(
                       _verSenha ? Icons.visibility_off : Icons.visibility,
