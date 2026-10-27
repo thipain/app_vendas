@@ -1,0 +1,12 @@
+rules_version = '2';
+
+// Apenas usuários logados (criados no Firebase Authentication) acessam os dados.
+// Cole este conteúdo em Firebase Console > Firestore Database > Regras.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{colecao}/{id} {
+      allow read, write: if request.auth != null
+        && colecao in ['produtos', 'clientes', 'vendas'];
+    }
+  }
+}
