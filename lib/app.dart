@@ -3,32 +3,38 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/update/update_checker.dart';
-import 'pages/home_page.dart';
+import 'data/config_repository.dart';
+import 'models/config_loja.dart';
 import 'pages/login_page.dart';
+import 'pages/shell/sessao_gate.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'App Vendas',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorSchemeSeed: Colors.indigo,
-        inputDecorationTheme: const InputDecorationTheme(
-          border: OutlineInputBorder(),
+    // As cores e o nome vêm das Configurações da loja.
+    return ValueListenableBuilder<ConfigLoja>(
+      valueListenable: ConfigRepository.atual,
+      builder: (context, config, _) => MaterialApp(
+        title: config.nomeSistema,
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorSchemeSeed: config.corPrimaria,
+          inputDecorationTheme: const InputDecorationTheme(
+            border: OutlineInputBorder(),
+          ),
         ),
+        locale: const Locale('pt', 'BR'),
+        supportedLocales: const [Locale('pt', 'BR')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        home: const _Inicio(),
       ),
-      locale: const Locale('pt', 'BR'),
-      supportedLocales: const [Locale('pt', 'BR')],
-      localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      home: const _Inicio(),
     );
   }
 }
 
-/// Verifica atualização uma vez ao abrir o app e mostra login ou home.
+/// Verifica atualização uma vez ao abrir o app e mostra login ou o sistema.
 class _Inicio extends StatefulWidget {
   const _Inicio();
 
@@ -57,7 +63,10 @@ class _InicioState extends State<_Inicio> {
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        return snap.hasData ? const HomePage() : const LoginPage();
+        final conta = snap.data;
+        return conta == null
+            ? const LoginPage()
+            : SessaoGate(key: ValueKey(conta.uid), conta: conta);
       },
     );
   }

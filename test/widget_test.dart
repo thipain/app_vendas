@@ -1,6 +1,9 @@
 import 'package:app_vendas/core/formatters.dart';
 import 'package:app_vendas/core/update/update_service.dart';
+import 'package:app_vendas/core/regra_exception.dart';
+import 'package:app_vendas/models/caixa.dart';
 import 'package:app_vendas/models/venda.dart';
+import 'package:app_vendas/widgets/seletor.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -38,5 +41,86 @@ void main() {
     );
     expect(venda.subtotal, 25.5);
     expect(venda.total, 25);
+  });
+
+  group('processarPagamentos', () {
+    test('dinheiro calcula troco e soma fecha com o total', () {
+      final p = processarPagamentos(const [
+        Pagamento(forma: FormaPagamento.dinheiro, valor: 30, recebido: 50),
+        Pagamento(forma: FormaPagamento.pix, valor: 20),
+      ], 5000);
+      expect(p, hasLength(2));
+      expect(p.first.troco, 20);
+      expect(p.last.troco, 0);
+    });
+
+    test('total zero vira cortesia', () {
+      final p = processarPagamentos(const [], 0);
+      expect(p.single.forma, FormaPagamento.cortesia);
+    });
+
+    test('ignora linhas zeradas e limita parcelas do crédito', () {
+      final p = processarPagamentos(const [
+        Pagamento(forma: FormaPagamento.credito, valor: 10, parcelas: 30),
+        Pagamento(forma: FormaPagamento.pix, valor: 0),
+      ], 1000);
+      expect(p.single.parcelas, FormaPagamento.maxParcelas);
+    });
+
+    test('recusa soma diferente e dinheiro insuficiente', () {
+      expect(
+        () => processarPagamentos(
+            const [Pagamento(forma: FormaPagamento.pix, valor: 9.99)], 1000),
+        throwsA(isA<RegraException>()),
+      );
+      expect(
+        () => processarPagamentos(const [
+          Pagamento(forma: FormaPagamento.dinheiro, valor: 10, recebido: 5),
+        ], 1000),
+        throwsA(isA<RegraException>()),
+      );
+    });
+  });
+
+  test('desconto percentual e em valor ficam limitados ao subtotal', () {
+    expect(calcularDesconto(10000, true, 10), 1000);
+    expect(calcularDesconto(10000, true, 150), 10000);
+    expect(calcularDesconto(10000, false, 25.5), 2550);
+    expect(calcularDesconto(10000, false, 500), 10000);
+    expect(calcularDesconto(10000, false, -3), 0);
+  });
+
+  test('caixa: só dinheiro entra na gaveta e o saldo segue a fórmula', () {
+    final venda = Venda(
+      itens: const [
+        ItemVenda(produtoId: 'a', nome: 'A', quantidade: 1, precoUnitario: 50),
+      ],
+      pagamentos: const [
+        Pagamento(
+            forma: FormaPagamento.dinheiro, valor: 30, recebido: 50, troco: 20),
+        Pagamento(forma: FormaPagamento.debito, valor: 20),
+      ],
+      formaPagamento: FormaPagamento.dinheiro,
+      data: DateTime(2026),
+    );
+    expect(venda.valorEmDinheiro, 30);
+
+    MovimentoCaixa m(String tipo, double valor) => MovimentoCaixa(
+        id: tipo, caixaId: 'c', tipo: tipo, valor: valor, data: DateTime(2026));
+    expect(
+      saldoCaixa([
+        m(MovimentoCaixa.abertura, 100),
+        m(MovimentoCaixa.venda, 30),
+        m(MovimentoCaixa.suprimento, 10.1),
+        m(MovimentoCaixa.sangria, 20),
+        m(MovimentoCaixa.estorno, 5),
+        m(MovimentoCaixa.fechamento, 999),
+      ]),
+      115.1,
+    );
+  });
+
+  test('busca ignora acentos e maiúsculas', () {
+    expect(normalizarBusca('Água Tônica'), 'agua tonica');
   });
 }

@@ -8,16 +8,57 @@ automaticamente com o Firebase quando a internet volta.
 
 ## Funcionalidades
 
-- Login por e-mail e senha (Firebase Authentication)
-- CRUD de **produtos** (nome, código, preço, estoque)
-- CRUD de **clientes**
-- **Vendas**: carrinho, cliente opcional, forma de pagamento, desconto, baixa automática
-  de estoque, cancelamento com devolução ao estoque e total vendido no dia
+Sistema completo de PDV para adega/loja, com todas as funções do AdegaPDV (versão web):
+
+**Operação diária**
+- **Visão geral**: vendas do dia, comandas abertas, itens em alerta e atalhos
+- **Caixa**: abertura, suprimento, sangria, fechamento com conferência da diferença e
+  histórico dos últimos fechamentos (só dinheiro movimenta a gaveta)
+- **Nova venda**: catálogo com fotos e busca, carrinho limitado ao estoque, desconto em R$
+  ou %, Pix/Dinheiro/Débito/Crédito (até 24x)/VR, troco, pagamento dividido em duas formas,
+  cliente opcional e comprovante
+- **Comandas**: abrir, lançar itens (o estoque sai na hora), alterar/remover itens,
+  renomear, cancelar com devolução e fechar com pagamento gerando a venda
+- **Retiradas de funcionário**: consumo da equipe com baixa no estoque, resumo mensal
+  por pessoa e cancelamento com devolução
+- **Ponto**: registro de entrada/saída com localização e endereço; ponto da equipe
+- **Clientes**: cadastro de clientes
+
+**Produtos e estoque**
+- Produtos com foto, código, categoria, preço de venda e custo, unidade, estoque mínimo,
+  ajuste de saldo com motivo obrigatório, desativação e restauração
+- **Notificações** de itens zerados e com estoque baixo (sino com contador)
+- **Notas de entrada** (controle interno): fornecedor, custo, vários produtos, edição com
+  reconciliação automática do estoque e impressão em A4
+- **Montagem e desmanche**: regras reutilizáveis (ex.: gelo + dose → copo; pallet →
+  caixas → unidades), execução em lotes e custo médio do produto gerado
+- **Histórico do estoque**: toda entrada, venda, comanda, ajuste e estorno
+
+**Gestão**
+- **Histórico de vendas** com filtros, detalhes, reimpressão, edição do comprovante e
+  estorno (devolve ao estoque e estorna o dinheiro no caixa)
+- **Relatórios**: faturamento, custo, lucro, margem, descontos, por forma de pagamento e
+  lucro por produto
+- **Auditoria** de acessos e de todas as operações sensíveis
+- **Equipe e acessos**: administrador e funcionários com permissões por módulo, bloqueio,
+  redefinição de senha e proteção do último administrador
+- **Configurações**: nome da loja, logo, cores, contato e dados do comprovante
+- **Calculadora**, **Meu perfil** (nome e senha)
+
+**Geral**
+- Funciona **offline** no celular e no PC; sincroniza sozinho quando a internet volta
 - Indicador de sincronização (nuvem na barra superior) e relógio laranja nos itens
   ainda não enviados ao servidor
-- **Atualização automática**: ao abrir, o app consulta a última Release deste repositório
-  no GitHub e oferece baixar e instalar a versão nova (APK no Android, instalador no Windows)
-- Layout adaptável: menu inferior no celular e menu lateral no PC
+- Comprovante 80 mm e nota A4 impressos ou compartilhados em PDF
+- **Atualização automática** pelas Releases do GitHub (APK no Android, instalador no Windows)
+- Layout adaptável: menu em gaveta no celular e menu lateral fixo no PC
+
+### Primeiro acesso e equipe
+
+Na primeira vez que alguém entra no sistema, o app pede o nome e transforma essa conta no
+**administrador**. Depois disso, novos funcionários são cadastrados pelo administrador em
+**Equipe e acessos** (precisa de internet). Contas criadas direto no Console do Firebase não
+têm acesso até serem cadastradas na equipe.
 
 ## Estrutura
 
@@ -27,9 +68,11 @@ lib/
   app.dart                  tema, idioma, login x home, checagem de atualização
   core/config.dart          usuário/repositório do GitHub usado nas atualizações
   core/update/              consulta de Releases e diálogo de atualização
-  models/                   Produto, Cliente, Venda
-  data/                     acesso ao Firestore (repositórios)
-  pages/                    telas
+  core/                     sessão, permissões, dinheiro em centavos, imagens, impressão
+  models/                   entidades (Produto, Venda, Caixa, Comanda, NotaEntrada...)
+  data/                     repositórios do Firestore com as regras de negócio
+  pages/shell/              menu, permissões e primeiro acesso
+  pages/                    telas de cada módulo
   widgets/                  componentes reutilizáveis
 ```
 
@@ -42,6 +85,10 @@ lib/
   offline, e o increment soma certo mesmo com vários vendedores offline ao mesmo tempo.
 - Produtos são excluídos de forma lógica (`ativo: false`), para que uma venda feita offline
   nunca falhe ao sincronizar por apontar para um produto apagado.
+- As regras (estoque suficiente, um caixa aberto por vez etc.) são conferidas com os dados
+  que o aparelho tem no momento. Com dois aparelhos **offline ao mesmo tempo**, ambos podem
+  vender o último item: o saldo fica negativo e aparece em Notificações e no Histórico do estoque.
+- Cadastrar funcionários, trocar a senha e o primeiro acesso do sistema precisam de internet.
 - O **primeiro login** precisa de internet. Depois disso o usuário continua logado offline.
 - Os dados precisam ter sido carregados ao menos uma vez com internet para aparecerem offline.
 
@@ -65,9 +112,11 @@ dart pub global activate flutterfire_cli
 
 1. Crie um projeto em <https://console.firebase.google.com>.
 2. **Firestore Database** → Criar banco de dados (modo produção, região `southamerica-east1`).
-3. **Firestore → Regras**: cole o conteúdo de [`firestore.rules`](firestore.rules) e publique.
+3. Publique as regras e índices do Firestore ([`firestore.rules`](firestore.rules),
+   [`firestore.indexes.json`](firestore.indexes.json)): `firebase deploy --only firestore`.
 4. **Authentication** → Método de login → ative **E-mail/senha**.
-5. **Authentication → Usuários** → adicione os vendedores (e-mail e senha).
+5. **Authentication → Usuários** → adicione **somente o primeiro usuário** (o dono). Ele vira
+   administrador no primeiro acesso e cadastra o resto da equipe pelo app.
 6. Na pasta do projeto, conecte o app ao Firebase (gera `lib/firebase_options.dart`
    e `android/app/google-services.json`):
 
