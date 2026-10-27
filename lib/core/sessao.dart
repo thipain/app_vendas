@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../models/loja.dart';
 import '../models/usuario.dart';
 
 /// Usuário logado e suas permissões, disponível para telas e repositórios.
@@ -20,6 +21,7 @@ class Sessao extends ChangeNotifier {
 
   /// Loja em uso e dados do sistema multiloja.
   String lojaNome = '';
+  Loja? loja;
 
   /// Dono do sistema: cadastra e bloqueia lojas e entra em qualquer uma.
   bool isDono = false;

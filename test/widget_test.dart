@@ -2,6 +2,7 @@ import 'package:app_vendas/core/formatters.dart';
 import 'package:app_vendas/core/update/update_service.dart';
 import 'package:app_vendas/core/regra_exception.dart';
 import 'package:app_vendas/models/caixa.dart';
+import 'package:app_vendas/models/loja.dart';
 import 'package:app_vendas/models/venda.dart';
 import 'package:app_vendas/widgets/seletor.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -69,8 +70,9 @@ void main() {
 
     test('recusa soma diferente e dinheiro insuficiente', () {
       expect(
-        () => processarPagamentos(
-            const [Pagamento(forma: FormaPagamento.pix, valor: 9.99)], 1000),
+        () => processarPagamentos(const [
+          Pagamento(forma: FormaPagamento.pix, valor: 9.99),
+        ], 1000),
         throwsA(isA<RegraException>()),
       );
       expect(
@@ -97,7 +99,11 @@ void main() {
       ],
       pagamentos: const [
         Pagamento(
-            forma: FormaPagamento.dinheiro, valor: 30, recebido: 50, troco: 20),
+          forma: FormaPagamento.dinheiro,
+          valor: 30,
+          recebido: 50,
+          troco: 20,
+        ),
         Pagamento(forma: FormaPagamento.debito, valor: 20),
       ],
       formaPagamento: FormaPagamento.dinheiro,
@@ -106,7 +112,12 @@ void main() {
     expect(venda.valorEmDinheiro, 30);
 
     MovimentoCaixa m(String tipo, double valor) => MovimentoCaixa(
-        id: tipo, caixaId: 'c', tipo: tipo, valor: valor, data: DateTime(2026));
+      id: tipo,
+      caixaId: 'c',
+      tipo: tipo,
+      valor: valor,
+      data: DateTime(2026),
+    );
     expect(
       saldoCaixa([
         m(MovimentoCaixa.abertura, 100),
@@ -122,5 +133,61 @@ void main() {
 
   test('busca ignora acentos e maiúsculas', () {
     expect(normalizarBusca('Água Tônica'), 'agua tonica');
+  });
+
+  group('mensalidade da loja', () {
+    final hoje = DateTime(2026, 10, 27, 10);
+    Loja loja(DateTime? pagoAte, {bool ativa = true, bool teste = false}) =>
+        Loja(
+          id: 'l',
+          nome: 'L',
+          ativa: ativa,
+          pagoAte: pagoAte,
+          carenciaDias: 5,
+          emTeste: teste,
+        );
+
+    test('situação conforme o vencimento e a carência', () {
+      expect(loja(null).situacao(hoje), SituacaoLoja.semCobranca);
+      expect(loja(DateTime(2026, 12, 1)).situacao(hoje), SituacaoLoja.emDia);
+      expect(
+        loja(DateTime(2026, 10, 30)).situacao(hoje),
+        SituacaoLoja.vencendo,
+      );
+      expect(
+        loja(DateTime(2026, 10, 30), teste: true).situacao(hoje),
+        SituacaoLoja.emTeste,
+      );
+      expect(
+        loja(DateTime(2026, 10, 25)).situacao(hoje),
+        SituacaoLoja.atrasada,
+      );
+      expect(
+        loja(DateTime(2026, 10, 20)).situacao(hoje),
+        SituacaoLoja.travadaPagamento,
+      );
+      expect(
+        loja(DateTime(2027), ativa: false).situacao(hoje),
+        SituacaoLoja.travadaManual,
+      );
+      expect(loja(DateTime(2026, 10, 20)).situacao(hoje).travada, isTrue);
+    });
+
+    test('pagamento avança o vencimento a partir do anterior', () {
+      expect(
+        proximoVencimento(DateTime(2026, 10, 10), 1, hoje),
+        DateTime(2026, 11, 10),
+      );
+      expect(
+        proximoVencimento(DateTime(2026, 1, 31), 1, DateTime(2026, 2, 1)),
+        DateTime(2026, 2, 28),
+      );
+      // Vencida há mais de um mês ou sem cobrança: conta a partir de hoje.
+      expect(
+        proximoVencimento(DateTime(2026, 6, 1), 1, hoje),
+        DateTime(2026, 11, 27),
+      );
+      expect(proximoVencimento(null, 3, hoje), DateTime(2027, 1, 27));
+    });
   });
 }

@@ -132,6 +132,8 @@ class SistemaRepository {
     required String nomeAdmin,
     required String emailAdmin,
     required String senhaAdmin,
+    Loja? cadastro,
+    int diasTeste = 0,
   }) async {
     final n = _validarNomeLoja(nomeLoja);
     final conta = await UsuarioRepository.obterOuCriarConta(
@@ -146,9 +148,17 @@ class SistemaRepository {
       email: emailAdmin.trim().toLowerCase(),
       papel: Usuario.papelAdmin,
     );
+    final hoje = DateTime.now();
+    final dados = (cadastro ?? Loja(id: loja.id, nome: n)).copyWith(
+      nome: n,
+      emTeste: diasTeste > 0,
+      pagoAte: diasTeste > 0
+          ? DateTime(hoje.year, hoje.month, hoje.day + diasTeste)
+          : null,
+    );
     final batch = _db.batch();
     batch.set(loja, {
-      'nome': n,
+      ...dados.dadosCadastro(),
       'ativa': true,
       'criadaEm': FieldValue.serverTimestamp(),
     });
@@ -223,15 +233,177 @@ class SistemaRepository {
   /// Bloqueia ou libera o acesso de toda a equipe da loja.
   Future<void> definirAtiva(Loja loja, bool ativa) async {
     final batch = _db.batch();
-    batch.update(Banco.lojas.doc(loja.id), {'ativa': ativa});
+    batch.update(Banco.lojas.doc(loja.id), {
+      'ativa': ativa,
+      'travadaEm': ativa ? null : FieldValue.serverTimestamp(),
+    });
     _registrar(
       batch,
       ativa ? 'store.unblock' : 'store.block',
-      ativa ? 'Loja liberada' : 'Loja bloqueada',
+      ativa ? 'Loja liberada' : 'Loja travada',
       lojaId: loja.id,
     );
     await batch.commit();
   }
+
+  CollectionReference<Map<String, dynamic>> get _pagamentos =>
+      _db.collection('pagamentosLojas');
+  CollectionReference<Map<String, dynamic>> get _avisos =>
+      _db.collection('avisos');
+
+  /// Altera os dados cadastrais e de cobrança da loja.
+  Future<void> salvarCadastro(Loja antes, Loja depois) async {
+    _validarNomeLoja(depois.nome);
+    if (depois.valorMensal < 0 || depois.carenciaDias < 0) {
+      throw const RegraException('Informe valores válidos.');
+    }
+    final batch = _db.batch();
+    batch.update(Banco.lojas.doc(antes.id), depois.dadosCadastro());
+    _registrar(
+      batch,
+      'store.update',
+      'Cadastro da loja alterado',
+      lojaId: antes.id,
+      dados: {'antes': _resumo(antes), 'depois': _resumo(depois)},
+    );
+    await batch.commit();
+  }
+
+  static Map<String, dynamic> _resumo(Loja l) => {
+    'nome': l.nome,
+    'valorMensal': l.valorMensal,
+    'pagoAte': l.pagoAte?.toIso8601String(),
+    'carenciaDias': l.carenciaDias,
+    'emTeste': l.emTeste,
+  };
+
+  /// Registra o pagamento de [meses] mensalidades e avança o vencimento.
+  /// O primeiro pagamento encerra o período de teste.
+  Future<DateTime> registrarPagamento(
+    Loja loja, {
+    required double valor,
+    required int meses,
+    required DateTime data,
+    required String forma,
+    String observacao = '',
+  }) async {
+    if (valor < 0) throw const RegraException('Informe um valor válido.');
+    if (meses < 1 || meses > 24) {
+      throw const RegraException('Informe de 1 a 24 meses.');
+    }
+    final novo = proximoVencimento(loja.emTeste ? null : loja.pagoAte, meses);
+    final batch = _db.batch();
+    batch.set(_pagamentos.doc(), {
+      'lojaId': loja.id,
+      'lojaNome': loja.nome,
+      'valor': valor,
+      'meses': meses,
+      'data': Timestamp.fromDate(data),
+      'forma': forma,
+      'observacao': observacao.trim(),
+      'vencimentoAnterior': loja.pagoAte == null
+          ? null
+          : Timestamp.fromDate(loja.pagoAte!),
+      'novoVencimento': Timestamp.fromDate(novo),
+      'registradoEm': FieldValue.serverTimestamp(),
+    });
+    batch.update(Banco.lojas.doc(loja.id), {
+      'pagoAte': Timestamp.fromDate(novo),
+      'emTeste': false,
+    });
+    _registrar(
+      batch,
+      'store.payment',
+      'Pagamento registrado',
+      lojaId: loja.id,
+      dados: {
+        'valor': valor,
+        'meses': meses,
+        'novoVencimento': novo.toIso8601String(),
+      },
+    );
+    await batch.commit();
+    return novo;
+  }
+
+  Stream<List<PagamentoLoja>> watchPagamentos(DateTime inicio, DateTime fim) =>
+      _pagamentos
+          .where('data', isGreaterThanOrEqualTo: Timestamp.fromDate(inicio))
+          .where('data', isLessThan: Timestamp.fromDate(fim))
+          .orderBy('data', descending: true)
+          .snapshots()
+          .map((s) => s.docs.map(PagamentoLoja.fromDoc).toList());
+
+  Stream<List<PagamentoLoja>> watchPagamentosDaLoja(String lojaId) =>
+      _pagamentos
+          .where('lojaId', isEqualTo: lojaId)
+          .snapshots()
+          .map(
+            (s) =>
+                s.docs.map(PagamentoLoja.fromDoc).toList()
+                  ..sort((a, b) => b.data.compareTo(a.data)),
+          );
+
+  /// Avisos ativos (para as lojas) ou todos (para o painel).
+  Stream<List<Aviso>> watchAvisos({bool somenteAtivos = false}) {
+    Query<Map<String, dynamic>> q = _avisos;
+    if (somenteAtivos) q = q.where('ativo', isEqualTo: true);
+    return q.snapshots().map(
+      (s) =>
+          s.docs.map(Aviso.fromDoc).toList()
+            ..sort((a, b) => b.criadoEm.compareTo(a.criadoEm)),
+    );
+  }
+
+  Future<void> publicarAviso({
+    required String titulo,
+    required String mensagem,
+    Loja? loja,
+  }) async {
+    if (titulo.trim().isEmpty || mensagem.trim().isEmpty) {
+      throw const RegraException('Informe o título e a mensagem do aviso.');
+    }
+    final batch = _db.batch();
+    final ref = _avisos.doc();
+    batch.set(ref, {
+      'titulo': titulo.trim(),
+      'mensagem': mensagem.trim(),
+      'lojaId': loja?.id,
+      'lojaNome': loja?.nome,
+      'ativo': true,
+      'criadoEm': Timestamp.now(),
+    });
+    _registrar(
+      batch,
+      'notice.create',
+      'Aviso publicado',
+      lojaId: loja?.id,
+      dados: {'titulo': titulo.trim()},
+    );
+    await batch.commit();
+  }
+
+  Future<void> definirAvisoAtivo(Aviso aviso, bool ativo) async {
+    final batch = _db.batch();
+    batch.update(_avisos.doc(aviso.id), {'ativo': ativo});
+    _registrar(
+      batch,
+      ativo ? 'notice.enable' : 'notice.disable',
+      ativo ? 'Aviso reativado' : 'Aviso encerrado',
+      lojaId: aviso.lojaId,
+      dados: {'titulo': aviso.titulo},
+    );
+    await batch.commit();
+  }
+
+  Stream<List<RegistroSistema>> watchAuditoria(DateTime inicio, DateTime fim) =>
+      _auditoria
+          .where('data', isGreaterThanOrEqualTo: Timestamp.fromDate(inicio))
+          .where('data', isLessThan: Timestamp.fromDate(fim))
+          .orderBy('data', descending: true)
+          .limit(1000)
+          .snapshots()
+          .map((s) => s.docs.map(RegistroSistema.fromDoc).toList());
 
   /// true quando ainda há dados da versão anterior (sem lojas) para migrar.
   Future<bool> temDadosAntigos(Sistema sistema) async {

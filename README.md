@@ -59,14 +59,24 @@ O mesmo app atende várias lojas (clientes), cada uma com seus próprios produto
 caixa, equipe e configurações, em `lojas/{loja}/...` no Firestore. As regras do Firestore
 só liberam os dados de uma loja para os membros ativos dela.
 
-- **Dono do sistema**: a conta do primeiro acesso. No menu da conta, **Painel do sistema**
-  cadastra lojas e o administrador de cada uma, adiciona administradores, renomeia e
-  **bloqueia/libera** lojas (loja bloqueada: ninguém da equipe entra). O dono pode entrar
-  em qualquer loja para dar suporte.
+- **Dono do sistema** (a conta do primeiro acesso): ao entrar, cai no **Painel
+  administrativo**, separado do app das lojas:
+  - **Visão geral**: lojas em dia, vencendo, atrasadas, travadas e em teste; receita mensal
+    prevista e recebida no mês.
+  - **Lojas**: cadastro do cliente (responsável, WhatsApp, CPF/CNPJ), valor da mensalidade,
+    vencimento, carência e teste grátis; registrar pagamento (avança o vencimento), travar e
+    liberar, adicionar administrador, cobrar no WhatsApp e **entrar como suporte**.
+  - **Mensalidades**: pagamentos recebidos por período e lista de inadimplentes.
+  - **Avisos**: mensagens exibidas no app de todas as lojas ou de uma loja.
+  - **Auditoria do sistema**: tudo o que foi feito no painel.
+- **Trava por mensalidade**: depois do vencimento a loja entra em **carência** (a equipe vê o
+  aviso) e, ao fim dela, **trava sozinha** — a regra do Firestore usa a hora do servidor, então
+  mudar o relógio do aparelho não adianta. O servidor ainda aceita por 3 dias a sincronização
+  de vendas feitas offline antes da trava. O dono também pode travar/liberar manualmente.
 - **Administrador da loja**: cadastra a própria equipe em **Equipe e acessos**.
 - Quem trabalha em mais de uma loja usa o mesmo e-mail e senha e escolhe a loja ao entrar
   (**Trocar de loja** no menu da conta). O app lembra a última loja aberta no aparelho.
-- **Migração**: os dados da versão anterior (antes das lojas) aparecem no Painel do sistema
+- **Migração**: os dados da versão anterior (antes das lojas) aparecem no Painel administrativo (Lojas)
   com o botão **Migrar**, que os copia para uma loja nova. Os originais ficam intactos.
 
 Os limites do plano gratuito do Firebase são somados entre todas as lojas; com vários

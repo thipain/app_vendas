@@ -12,11 +12,11 @@ import '../../data/dados.dart';
 import '../../models/config_loja.dart';
 import '../../models/produto.dart';
 import '../../widgets/confirmar.dart';
+import '../../widgets/faixa_avisos.dart';
 import '../../widgets/foto_produto.dart';
 import '../../widgets/largura_maxima.dart';
 import '../../widgets/sync_status_icon.dart';
 import '../calculadora/calculadora_page.dart';
-import '../sistema/painel_sistema_page.dart';
 import 'modulos.dart';
 
 /// Estrutura principal: menu lateral agrupado (fixo no PC, gaveta no
@@ -76,9 +76,6 @@ class _AppShellState extends State<AppShell> {
         _abrir('perfil');
       case 'loja':
         Sessao.instancia.trocarLoja?.call();
-      case 'painel':
-        await Navigator.of(context)
-            .push(MaterialPageRoute(builder: (_) => const PainelSistemaPage()));
       case 'atualizar':
         await verificarAtualizacao(context, avisarSemNovidade: true);
       case 'sobre':
@@ -174,14 +171,13 @@ class _AppShellState extends State<AppShell> {
               ),
               const PopupMenuItem(value: 'perfil', child: Text('Meu perfil')),
               if (Sessao.instancia.trocarLoja != null)
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'loja',
-                  child: Text('Trocar de loja'),
-                ),
-              if (Sessao.instancia.isDono)
-                const PopupMenuItem(
-                  value: 'painel',
-                  child: Text('Painel do sistema'),
+                  child: Text(
+                    Sessao.instancia.isDono
+                        ? 'Voltar ao painel administrativo'
+                        : 'Trocar de loja',
+                  ),
                 ),
               const PopupMenuItem(
                 value: 'atualizar',
@@ -193,16 +189,23 @@ class _AppShellState extends State<AppShell> {
           ),
         ],
       ),
-      body: Row(
+      body: Column(
         children: [
-          if (desktop) ...[
-            SizedBox(width: 260, child: menu),
-            const VerticalDivider(width: 1),
-          ],
+          const FaixaAvisos(),
           Expanded(
-            child: KeyedSubtree(
-              key: ValueKey('${_atual.id}-$_versao'),
-              child: _atual.builder(_argumento),
+            child: Row(
+              children: [
+                if (desktop) ...[
+                  SizedBox(width: 260, child: menu),
+                  const VerticalDivider(width: 1),
+                ],
+                Expanded(
+                  child: KeyedSubtree(
+                    key: ValueKey('${_atual.id}-$_versao'),
+                    child: _atual.builder(_argumento),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

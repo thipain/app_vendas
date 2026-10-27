@@ -10,7 +10,7 @@ import '../../data/sistema_repository.dart';
 import '../../data/usuario_repository.dart';
 import '../../models/loja.dart';
 import '../../models/usuario.dart';
-import '../sistema/painel_sistema_page.dart';
+import '../admin/admin_shell.dart';
 import 'app_shell.dart';
 
 /// Depois do login decide o que mostrar: configuração inicial do sistema,
@@ -48,6 +48,10 @@ class _SessaoGateState extends State<SessaoGate> {
   String get _chavePreferencia => 'ultimaLoja_${widget.conta.uid}';
   String? _escolhida;
   bool _preferenciaLida = false;
+
+  /// Loja aberta pelo dono do sistema nesta sessão (ele sempre começa no
+  /// painel administrativo).
+  String? _lojaDoDono;
 
   @override
   void initState() {
@@ -147,8 +151,24 @@ class _SessaoGateState extends State<SessaoGate> {
     final lista = opcoes.values.toList()
       ..sort((a, b) => a.nome.toLowerCase().compareTo(b.nome.toLowerCase()));
 
+    if (dono) {
+      final aberta = opcoes[_lojaDoDono];
+      if (aberta == null) {
+        return AdminShell(
+          minhasLojas: vinculos.where((v) => v.ativo).toList(),
+          onEntrarLoja: (id) => setState(() => _lojaDoDono = id),
+        );
+      }
+      return _LojaAberta(
+        key: ValueKey(aberta.lojaId),
+        conta: widget.conta,
+        lojaId: aberta.lojaId,
+        dono: true,
+        trocarLoja: () => setState(() => _lojaDoDono = null),
+      );
+    }
+
     if (lista.isEmpty) {
-      if (dono) return const PainelSistemaPage(semLojas: true);
       return const _Aviso(
         icone: Icons.person_off_outlined,
         titulo: 'Conta sem acesso',
@@ -159,19 +179,16 @@ class _SessaoGateState extends State<SessaoGate> {
     }
 
     var escolhida = opcoes[_escolhida];
-    if (escolhida == null && lista.length == 1 && !dono) {
-      escolhida = lista.first;
-    }
+    if (escolhida == null && lista.length == 1) escolhida = lista.first;
     if (escolhida == null) {
-      return _SeletorLoja(opcoes: lista, dono: dono, onEscolher: _escolher);
+      return _SeletorLoja(opcoes: lista, onEscolher: _escolher);
     }
-    final podeTrocar = lista.length > 1 || dono;
     return _LojaAberta(
       key: ValueKey(escolhida.lojaId),
       conta: widget.conta,
       lojaId: escolhida.lojaId,
-      dono: dono,
-      trocarLoja: podeTrocar ? () => _escolher(null) : null,
+      dono: false,
+      trocarLoja: lista.length > 1 ? () => _escolher(null) : null,
     );
   }
 }
@@ -237,13 +254,18 @@ class _LojaAbertaState extends State<_LojaAberta> {
             trocarLoja: trocar,
           );
         }
-        if (!loja.ativa && !widget.dono) {
+        final situacao = loja.situacao();
+        if (situacao.travada && !widget.dono) {
           return _Aviso(
-            icone: Icons.store_outlined,
-            titulo: 'Loja bloqueada',
-            mensagem:
-                'O acesso à ${loja.nome} está suspenso. '
-                'Entre em contato com o suporte do sistema.',
+            icone: Icons.lock_outline,
+            titulo: 'Acesso suspenso',
+            mensagem: situacao == SituacaoLoja.travadaPagamento
+                ? 'O acesso da ${loja.nome} foi suspenso por falta de '
+                      'pagamento da mensalidade. Entre em contato com o suporte '
+                      'do sistema para regularizar. Os seus dados estão '
+                      'guardados.'
+                : 'O acesso da ${loja.nome} está suspenso. Entre em contato '
+                      'com o suporte do sistema.',
             trocarLoja: trocar,
           );
         }
@@ -288,6 +310,7 @@ class _LojaAbertaState extends State<_LojaAberta> {
               );
             }
             final sessao = Sessao.instancia
+              ..loja = loja
               ..lojaNome = loja.nome
               ..isDono = widget.dono
               ..trocarLoja = trocar;
@@ -312,30 +335,16 @@ class _LojaAbertaState extends State<_LojaAberta> {
 
 class _SeletorLoja extends StatelessWidget {
   final List<_Opcao> opcoes;
-  final bool dono;
   final ValueChanged<String> onEscolher;
 
-  const _SeletorLoja({
-    required this.opcoes,
-    required this.dono,
-    required this.onEscolher,
-  });
+  const _SeletorLoja({required this.opcoes, required this.onEscolher});
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Escolha a loja'),
         actions: [
-          if (dono)
-            TextButton.icon(
-              icon: const Icon(Icons.admin_panel_settings_outlined),
-              label: const Text('Painel do sistema'),
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const PainelSistemaPage()),
-              ),
-            ),
           IconButton(
             tooltip: 'Sair',
             icon: const Icon(Icons.logout),
@@ -361,15 +370,7 @@ class _SeletorLoja extends StatelessWidget {
                       ),
                     ),
                     title: Text(o.nome),
-                    subtitle: Text(
-                      [
-                        if (o.bloqueada) 'Bloqueada',
-                        if (o.comoDono) 'Acesso de dono do sistema',
-                      ].join(' · '),
-                    ),
                     trailing: const Icon(Icons.chevron_right),
-                    enabled: !o.bloqueada || dono,
-                    textColor: o.bloqueada ? t.colorScheme.error : null,
                     onTap: () => onEscolher(o.lojaId),
                   ),
                 ),
