@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adega PDV — sistema de vendas para adegas</title>
+<meta name="description" content="Sistema de vendas para adegas no celular e no PC: caixa, comandas, estoque, equipe e relatórios. Funciona sem internet. Teste grátis por 14 dias.">
+<meta property="og:title" content="Adega PDV — sistema de vendas para adegas">
+<meta property="og:description" content="Caixa, comandas, estoque e relatórios no celular e no PC. Funciona sem internet. Teste grátis.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --verde: #173f2d;
+    --verde-2: #1f5640;
+    --verde-claro: #e8f1ec;
+    --lima: #d8ed87;
+    --texto: #16241d;
+    --suave: #56665d;
+    --fundo: #ffffff;
+    --fundo-2: #f5f8f3;
+    --borda: #dfe7e1;
+    --raio: 16px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--texto);
+    background: var(--fundo);
+    line-height: 1.55;
+  }
+  img { max-width: 100%; }
+  a { color: inherit; }
+  .container { width: min(1120px, 100% - 32px); margin-inline: auto; }
+  h1, h2, h3 { line-height: 1.15; margin: 0 0 12px; letter-spacing: -0.02em; }
+  h2 { font-size: clamp(1.7rem, 3.5vw, 2.4rem); }
+  p { margin: 0 0 12px; }
+  .sub { color: var(--suave); font-size: 1.08rem; }
+  section { padding: 72px 0; }
+  .centro { text-align: center; }
+  .centro .sub { max-width: 640px; margin-inline: auto; }
+
+  /* Botões */
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 14px 22px; border-radius: 999px; font-weight: 700;
+    text-decoration: none; border: 2px solid transparent; cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,0,0,.12); }
+  .btn-principal { background: var(--lima); color: var(--verde); }
+  .btn-escuro { background: var(--verde); color: #fff; }
+  .btn-contorno { border-color: rgba(255,255,255,.5); color: #fff; }
+  .btn svg { width: 20px; height: 20px; }
+
+  /* Topo */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(23,63,45,.96); backdrop-filter: blur(8px);
+    color: #fff;
+  }
+  .topo { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .marca { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.15rem; text-decoration: none; }
+  .marca-icone {
+    width: 34px; height: 34px; border-radius: 10px; background: var(--lima);
+    color: var(--verde); display: grid; place-items: center; font-weight: 800;
+  }
+  .menu { display: flex; gap: 22px; align-items: center; }
+  .menu a { text-decoration: none; opacity: .85; font-weight: 500; }
+  .menu a:hover { opacity: 1; }
+  .menu .btn { padding: 10px 18px; opacity: 1; }
+  @media (max-width: 760px) { .menu a:not(.btn) { display: none; } }
+
+  /* Hero */
+  .hero {
+    background: radial-gradient(1200px 500px at 80% -10%, #2b6b4f 0%, transparent 60%), var(--verde);
+    color: #fff; padding: 64px 0 80px;
+  }
+  .hero-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; }
+  .selo {
+    display: inline-block; background: rgba(216,237,135,.15); color: var(--lima);
+    border: 1px solid rgba(216,237,135,.35); padding: 6px 14px; border-radius: 999px;
+    font-size: .9rem; font-weight: 600; margin-bottom: 18px;
+  }
+  .hero h1 { font-size: clamp(2.1rem, 5vw, 3.4rem); }
+  .hero h1 em { font-style: normal; color: var(--lima); }
+  .hero .sub { color: rgba(255,255,255,.82); font-size: 1.15rem; max-width: 560px; }
+  .acoes { display: flex; flex-wrap: wrap; gap: 12px; margin: 26px 0 18px; }
+  .garantias { display: flex; flex-wrap: wrap; gap: 18px; font-size: .95rem; color: rgba(255,255,255,.8); }
+  .garantias span::before { content: "✓ "; color: var(--lima); font-weight: 800; }
+  @media (max-width: 900px) { .hero-grid { grid-template-columns: 1fr; } }
+
+  /* Ilustração: celular com a tela de vendas */
+  .aparelhos { position: relative; display: flex; justify-content: center; }
+  .celular {
+    width: 270px; background: #0d1f16; border-radius: 34px; padding: 12px;
+    box-shadow: 0 30px 60px rgba(0,0,0,.35); position: relative; z-index: 2;
+  }
+  .tela { background: #f6f8f5; border-radius: 24px; overflow: hidden; color: var(--texto); font-size: 12px; }
+  .tela-topo { background: var(--verde); color: #fff; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; }
+  .tela-topo b { font-size: 13px; }
+  .nuvem { font-size: 11px; background: rgba(255,255,255,.15); padding: 3px 8px; border-radius: 99px; }
+  .caixa-ok { margin: 10px 12px 4px; background: #e3f3e7; color: #1f6b3a; border-radius: 8px; padding: 6px 10px; font-weight: 600; }
+  .produtos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px 12px; }
+  .prod { background: #fff; border: 1px solid var(--borda); border-radius: 10px; padding: 8px; }
+  .prod i { display: block; height: 42px; border-radius: 7px; margin-bottom: 6px; }
+  .prod b { display: block; font-size: 11px; }
+  .prod span { color: var(--verde); font-weight: 700; }
+  .carrinho { margin: 4px 12px 12px; background: var(--verde); color: #fff; border-radius: 12px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; }
+  .carrinho b { color: var(--lima); font-size: 15px; }
+  .pc {
+    position: absolute; right: -40px; bottom: -20px; width: 300px; z-index: 1;
+    background: #fff; border-radius: 12px; padding: 12px; color: var(--texto);
+    box-shadow: 0 20px 40px rgba(0,0,0,.25); font-size: 11px; transform: rotate(3deg);
+  }
+  .pc h4 { margin: 0 0 8px; font-size: 12px; }
+  .barras { display: flex; align-items: flex-end; gap: 6px; height: 70px; }
+  .barras i { flex: 1; background: var(--verde-2); border-radius: 4px 4px 0 0; }
+  .barras i:nth-child(odd) { background: #8fbf6b; }
+  @media (max-width: 900px) { .pc { display: none; } }
+
+  /* Dores */
+  .fundo-claro { background: var(--fundo-2); }
+  .grade { display: grid; gap: 18px; }
+  .g3 { grid-template-columns: repeat(3, 1fr); }
+  .g4 { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 900px) { .g3, .g4 { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .g3, .g4 { grid-template-columns: 1fr; } }
+  .cartao {
+    background: #fff; border: 1px solid var(--borda); border-radius: var(--raio);
+    padding: 22px;
+  }
+  .cartao h3 { font-size: 1.08rem; }
+  .cartao p { color: var(--suave); margin: 0; }
+  .icone {
+    width: 44px; height: 44px; border-radius: 12px; background: var(--verde-claro);
+    display: grid; place-items: center; font-size: 22px; margin-bottom: 14px;
+  }
+  .dor .icone { background: #fdecea; }
+  .lista-titulo { margin-top: 40px; }
+
+  /* Offline */
+  .offline { background: var(--verde); color: #fff; border-radius: 28px; padding: 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+  .offline .sub { color: rgba(255,255,255,.8); }
+  .offline ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+  .offline li { background: rgba(255,255,255,.08); border-radius: 12px; padding: 14px 16px; }
+  .offline li b { color: var(--lima); }
+  @media (max-width: 900px) { .offline { grid-template-columns: 1fr; padding: 32px 22px; } }
+
+  /* Passos */
+  .passo-num { width: 36px; height: 36px; border-radius: 50%; background: var(--lima); color: var(--verde); font-weight: 800; display: grid; place-items: center; margin-bottom: 12px; }
+
+  /* Planos */
+  .planos { grid-template-columns: repeat(3, 1fr); align-items: stretch; }
+  @media (max-width: 900px) { .planos { grid-template-columns: 1fr; max-width: 460px; margin-inline: auto; } }
+  .plano { display: flex; flex-direction: column; }
+  .plano.destaque { border: 2px solid var(--verde); box-shadow: 0 16px 40px rgba(23,63,45,.12); position: relative; }
+  .plano.destaque::before {
+    content: "Mais escolhido"; position: absolute; top: -13px; left: 22px;
+    background: var(--verde); color: var(--lima); font-size: .8rem; font-weight: 700;
+    padding: 4px 12px; border-radius: 99px;
+  }
+  .preco { font-size: 2.4rem; font-weight: 800; color: var(--verde); margin: 8px 0 2px; }
+  .preco small { font-size: 1rem; font-weight: 600; color: var(--suave); }
+  .plano ul { padding: 0; margin: 16px 0 22px; list-style: none; display: grid; gap: 8px; flex: 1; }
+  .plano li::before { content: "✓ "; color: var(--verde-2); font-weight: 800; }
+  .plano .btn { justify-content: center; }
+  .obs { color: var(--suave); font-size: .92rem; margin-top: 18px; }
+
+  /* Vídeo */
+  .video { aspect-ratio: 16 / 9; width: 100%; max-width: 860px; margin: 28px auto 0; border-radius: 20px; overflow: hidden; background: #000; }
+  .video iframe { width: 100%; height: 100%; border: 0; }
+
+  /* FAQ */
+  .faq { max-width: 820px; margin: 28px auto 0; display: grid; gap: 12px; }
+  details { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 16px 20px; }
+  summary { font-weight: 700; cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; color: var(--verde-2); font-size: 1.3rem; line-height: 1; }
+  details[open] summary::after { content: "–"; }
+  details p { margin: 12px 0 0; color: var(--suave); }
+
+  /* CTA final */
+  .cta-final { background: var(--lima); border-radius: 28px; padding: 48px 32px; text-align: center; }
+  .cta-final h2 { color: var(--verde); }
+  .cta-final .sub { color: #3b5244; }
+
+  footer { background: var(--verde); color: rgba(255,255,255,.75); padding: 28px 0; font-size: .92rem; }
+  .rodape { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; }
+
+  /* Botão flutuante do WhatsApp */
+  .whats-flutuante {
+    position: fixed; right: 18px; bottom: 18px; z-index: 20;
+    width: 58px; height: 58px; border-radius: 50%; background: #25d366; color: #fff;
+    display: grid; place-items: center; box-shadow: 0 10px 24px rgba(0,0,0,.25);
+  }
+  .whats-flutuante svg { width: 30px; height: 30px; }
+</style>
+</head>
+<body>
+
+<!--
+  =====================  CONFIGURE AQUI  =====================
+  Altere os valores em CONFIG (no fim do arquivo, dentro de <script>):
+  nome do produto, número do WhatsApp, preços e o link do vídeo.
+  ============================================================
+-->
+
+<header>
+  <div class="container topo">
+    <a class="marca" href="#">
+      <span class="marca-icone" data-inicial>A</span>
+      <span data-nome>Adega PDV</span>
+    </a>
+    <nav class="menu">
+      <a href="#recursos">Recursos</a>
+      <a href="#offline">Sem internet</a>
+      <a href="#planos">Planos</a>
+      <a href="#duvidas">Dúvidas</a>
+      <a class="btn btn-principal" data-whats="Olá! Quero testar o sistema grátis por 14 dias.">Testar grátis</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container hero-grid">
+    <div>
+      <span class="selo">Feito para adegas e distribuidoras de bebidas</span>
+      <h1>Venda, controle o caixa e o estoque da sua adega <em>direto do celular</em></h1>
+      <p class="sub">Caixa, comandas, estoque, equipe e relatórios de lucro em um só app, no celular e no computador do balcão. E continua vendendo mesmo quando a internet cai.</p>
+      <div class="acoes">
+        <a class="btn btn-principal" data-whats="Olá! Quero testar o sistema grátis por 14 dias.">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-3.3-.8-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.3-.3.6-.3.8-.3h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.7-.1l2 .9c.3.2.5.2.5.4.1.1.1.7-.1 1.3Z"/></svg>
+          Testar 14 dias grátis
+        </a>
+        <a class="btn btn-contorno" href="#recursos">Ver o que o app faz</a>
+      </div>
+      <div class="garantias">
+        <span>Sem fidelidade</span>
+        <span>Implantação assistida</span>
+        <span>Android e Windows</span>
+      </div>
+    </div>
+
+    <div class="aparelhos" aria-hidden="true">
+      <div class="celular">
+        <div class="tela">
+          <div class="tela-topo"><b>Nova venda</b><span class="nuvem">☁ sincronizado</span></div>
+          <div class="caixa-ok">● Caixa aberto</div>
+          <div class="produtos">
+            <div class="prod"><i style="background:linear-gradient(135deg,#f3c25b,#d18b1f)"></i><b>Cerveja 350ml</b><span>R$ 5,50</span></div>
+            <div class="prod"><i style="background:linear-gradient(135deg,#8c4a2f,#4a2014)"></i><b>Whisky 1L</b><span>R$ 129,90</span></div>
+            <div class="prod"><i style="background:linear-gradient(135deg,#59a5d8,#1f5f8b)"></i><b>Energético</b><span>R$ 9,00</span></div>
+            <div class="prod"><i style="background:linear-gradient(135deg,#cfe8f7,#8ec5e6)"></i><b>Gelo 5kg</b><span>R$ 12,00</span></div>
+          </div>
+          <div class="carrinho"><span>4 itens</span><b>R$ 156,40</b></div>
+        </div>
+      </div>
+      <div class="pc">
+        <h4>Relatório do mês · lucro por dia</h4>
+        <div class="barras"><i style="height:40%"></i><i style="height:65%"></i><i style="height:50%"></i><i style="height:85%"></i><i style="height:70%"></i><i style="height:95%"></i><i style="height:60%"></i></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="centro">
+      <h2>Ainda passa por isso na sua adega?</h2>
+      <p class="sub">Problemas comuns de quem controla tudo no caderno, na planilha ou em sistema que trava sem internet.</p>
+    </div>
+    <div class="grade g4 lista-titulo">
+      <div class="cartao dor"><div class="icone">💸</div><h3>Caixa que não fecha</h3><p>No fim do dia o dinheiro não bate e ninguém sabe onde foi parar a diferença.</p></div>
+      <div class="cartao dor"><div class="icone">📦</div><h3>Estoque sumindo</h3><p>Garrafa que some, produto que acaba sem aviso e compra feita no chute.</p></div>
+      <div class="cartao dor"><div class="icone">📝</div><h3>Comanda no papel</h3><p>Mesa que esquece item, conta errada e cliente reclamando na hora de pagar.</p></div>
+      <div class="cartao dor"><div class="icone">📉</div><h3>Sem saber o lucro</h3><p>Vende bem, mas não sabe quanto realmente sobra depois do custo.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="recursos" class="fundo-claro">
+  <div class="container">
+    <div class="centro">
+      <h2>Tudo o que a adega precisa, num app só</h2>
+      <p class="sub">Use no celular quando estiver longe do balcão e no computador da loja, com os mesmos dados.</p>
+    </div>
+    <div class="grade g3 lista-titulo">
+      <div class="cartao"><div class="icone">🛒</div><h3>Vendas rápidas</h3><p>Catálogo com fotos, busca e leitor de código de barras. Pix, dinheiro com troco, débito, crédito em até 24x e pagamento dividido.</p></div>
+      <div class="cartao"><div class="icone">🧾</div><h3>Comandas</h3><p>Abra comandas por mesa ou cliente, lance itens a qualquer momento e feche com desconto e pagamento.</p></div>
+      <div class="cartao"><div class="icone">💰</div><h3>Controle de caixa</h3><p>Abertura, suprimento, sangria e fechamento com conferência da diferença no fim do turno.</p></div>
+      <div class="cartao"><div class="icone">📦</div><h3>Estoque de verdade</h3><p>Baixa automática, alerta de estoque mínimo, notas de entrada e histórico de cada movimentação.</p></div>
+      <div class="cartao"><div class="icone">🔁</div><h3>Montagem e desmanche</h3><p>Fardo → unidades, ou gelo + dose + energético → copo. O estoque e o custo se ajustam sozinhos.</p></div>
+      <div class="cartao"><div class="icone">📊</div><h3>Relatórios de lucro</h3><p>Faturamento, custo, lucro, margem, vendas por forma de pagamento e os produtos que mais dão lucro.</p></div>
+      <div class="cartao"><div class="icone">👥</div><h3>Equipe com permissões</h3><p>Cada funcionário com o seu acesso. Retiradas da equipe e ponto com horário e localização.</p></div>
+      <div class="cartao"><div class="icone">🖨️</div><h3>Comprovante</h3><p>Comprovante não fiscal para impressora térmica de 80 mm ou enviado em PDF pelo WhatsApp.</p></div>
+      <div class="cartao"><div class="icone">🔒</div><h3>Seguro e auditado</h3><p>Dados na nuvem do Google, cópia no aparelho e registro de quem fez cada operação.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="offline">
+  <div class="container">
+    <div class="offline">
+      <div>
+        <h2>A internet caiu? A adega continua vendendo.</h2>
+        <p class="sub">O app guarda tudo no aparelho e sincroniza sozinho quando a conexão volta. Sem fila parada, sem venda perdida.</p>
+      </div>
+      <ul>
+        <li><b>Vende offline:</b> registra vendas, comandas e baixa de estoque sem internet.</li>
+        <li><b>Sincroniza sozinho:</b> ao reconectar, tudo vai para a nuvem e aparece nos outros aparelhos.</li>
+        <li><b>Celular e PC juntos:</b> a venda feita no celular aparece no computador do balcão.</li>
+        <li><b>Sempre atualizado:</b> versões novas chegam automaticamente.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="fundo-claro" id="video-secao" hidden>
+  <div class="container centro">
+    <h2>Veja o app funcionando</h2>
+    <p class="sub">Uma venda completa, uma comanda e o fechamento de caixa em poucos minutos.</p>
+    <div class="video"><iframe data-video title="Demonstração do app" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="centro">
+      <h2>Começar é simples</h2>
+      <p class="sub">Você não precisa entender de tecnologia: a gente ajuda a deixar tudo pronto.</p>
+    </div>
+    <div class="grade g3 lista-titulo">
+      <div class="cartao"><div class="passo-num">1</div><h3>Chame no WhatsApp</h3><p>Conte como funciona a sua adega e receba o acesso de teste grátis.</p></div>
+      <div class="cartao"><div class="passo-num">2</div><h3>Implantação assistida</h3><p>Ajudamos a cadastrar produtos, equipe e a configurar a loja com a sua logo.</p></div>
+      <div class="cartao"><div class="passo-num">3</div><h3>Comece a vender</h3><p>Instale no celular e no computador e use por 14 dias antes de decidir.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="planos" class="fundo-claro">
+  <div class="container">
+    <div class="centro">
+      <h2>Planos sem surpresa</h2>
+      <p class="sub">Teste grátis por 14 dias. Sem fidelidade: cancele quando quiser.</p>
+    </div>
+    <div class="grade planos lista-titulo">
+      <div class="cartao plano">
+        <h3>Essencial</h3>
+        <div class="preco"><span data-preco="essencial">R$ 79</span><small>/mês</small></div>
+        <p class="obs" style="margin:0">Para começar a organizar a adega.</p>
+        <ul>
+          <li>Vendas, caixa e comandas</li>
+          <li>Estoque com alerta de mínimo</li>
+          <li>Até 3 usuários</li>
+          <li>Celular e computador</li>
+          <li>Funciona sem internet</li>
+        </ul>
+        <a class="btn btn-escuro" data-whats="Olá! Tenho interesse no plano Essencial.">Quero o Essencial</a>
+      </div>
+      <div class="cartao plano destaque">
+        <h3>Completo</h3>
+        <div class="preco"><span data-preco="completo">R$ 119</span><small>/mês</small></div>
+        <p class="obs" style="margin:0">Controle total da operação e do lucro.</p>
+        <ul>
+          <li>Tudo do Essencial</li>
+          <li>Usuários ilimitados com permissões</li>
+          <li>Relatórios de lucro e margem</li>
+          <li>Notas de entrada, montagem e desmanche</li>
+          <li>Ponto e retiradas da equipe</li>
+          <li>Auditoria de operações</li>
+        </ul>
+        <a class="btn btn-principal" style="background:var(--verde);color:var(--lima)" data-whats="Olá! Tenho interesse no plano Completo.">Quero o Completo</a>
+      </div>
+      <div class="cartao plano">
+        <h3>Anual</h3>
+        <div class="preco"><span data-preco="anual">12 por 10</span></div>
+        <p class="obs" style="margin:0">Pague 10 mensalidades e use 12 meses.</p>
+        <ul>
+          <li>Qualquer plano no pagamento anual</li>
+          <li>2 meses de desconto</li>
+          <li>Pagamento à vista no Pix</li>
+          <li>Preço garantido por 12 meses</li>
+        </ul>
+        <a class="btn btn-escuro" data-whats="Olá! Quero saber do plano anual.">Quero o anual</a>
+      </div>
+    </div>
+    <p class="obs centro" data-implantacao>Implantação assistida opcional: cadastro dos produtos, configuração e treinamento da equipe.</p>
+  </div>
+</section>
+
+<section id="duvidas">
+  <div class="container">
+    <div class="centro">
+      <h2>Dúvidas frequentes</h2>
+    </div>
+    <div class="faq">
+      <details><summary>Preciso de internet para usar?</summary><p>Não para vender. O app funciona offline e sincroniza quando a internet volta. A internet é necessária só no primeiro acesso, para cadastrar funcionários e para trocar a senha.</p></details>
+      <details><summary>Funciona no celular e no computador?</summary><p>Sim. Há versão para Android e para Windows, com os mesmos dados: o que é vendido no celular aparece no computador e vice-versa.</p></details>
+      <details><summary>Emite nota fiscal (NFC-e)?</summary><p>No momento o app emite comprovante não fiscal, para impressora térmica ou PDF. Ele é ideal para MEI e adegas que não precisam emitir NFC-e na venda ao consumidor. Confirme com o seu contador a regra do seu caso.</p></details>
+      <details><summary>Posso testar antes de pagar?</summary><p>Sim, são 14 dias grátis com tudo liberado. Se não gostar, é só não continuar.</p></details>
+      <details><summary>Tem fidelidade ou multa?</summary><p>Não. O plano é mensal e você pode cancelar quando quiser.</p></details>
+      <details><summary>Meus dados ficam seguros?</summary><p>Os dados ficam na nuvem do Google (Firebase), com cópia no aparelho. Cada loja só enxerga os próprios dados, e cada funcionário só acessa o que o dono liberar.</p></details>
+      <details><summary>Funciona com impressora térmica?</summary><p>Sim. O comprovante é gerado no formato 80 mm e pode ser impresso pela impressora do computador ou do celular, ou enviado em PDF.</p></details>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="cta-final">
+      <h2>Teste grátis por 14 dias</h2>
+      <p class="sub">Fale com a gente no WhatsApp e comece hoje a organizar as vendas e o estoque da sua adega.</p>
+      <div class="acoes" style="justify-content:center">
+        <a class="btn btn-escuro" data-whats="Olá! Quero testar o sistema grátis por 14 dias.">Chamar no WhatsApp</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container rodape">
+    <span>© <span data-ano></span> <span data-nome>Adega PDV</span> · Sistema de vendas para adegas</span>
+    <a data-whats="Olá! Vim pelo site.">Fale conosco no WhatsApp</a>
+  </div>
+</footer>
+
+<a class="whats-flutuante" aria-label="Falar no WhatsApp" data-whats="Olá! Vim pelo site e quero saber mais sobre o sistema.">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-3.3-.8-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.3-.3.6-.3.8-.3h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.7-.1l2 .9c.3.2.5.2.5.4.1.1.1.7-.1 1.3Z"/></svg>
+</a>
+
+<script>
+  // ===================== CONFIGURE AQUI =====================
+  const CONFIG = {
+    nome: 'Adega PDV',
+    // WhatsApp com DDI + DDD + número, só dígitos. Ex.: '5511999998888'
+    whatsapp: '5500000000000',
+    precos: { essencial: 'R$ 79', completo: 'R$ 119', anual: '12 por 10' },
+    // Link do vídeo de demonstração no YouTube (vazio = seção escondida)
+    // Ex.: 'https://www.youtube.com/watch?v=XXXXXXXXXXX'
+    video: '',
+    implantacao: 'Implantação assistida opcional: cadastro dos produtos, configuração e treinamento da equipe.',
+  };
+  // ==========================================================
+
+  document.querySelectorAll('[data-nome]').forEach(e => e.textContent = CONFIG.nome);
+  document.querySelectorAll('[data-inicial]').forEach(e => e.textContent = CONFIG.nome.charAt(0).toUpperCase());
+  document.title = CONFIG.nome + ' — sistema de vendas para adegas';
+  document.querySelectorAll('[data-ano]').forEach(e => e.textContent = new Date().getFullYear());
+  Object.entries(CONFIG.precos).forEach(([plano, valor]) => {
+    document.querySelectorAll('[data-preco="' + plano + '"]').forEach(e => e.textContent = valor);
+  });
+  document.querySelectorAll('[data-implantacao]').forEach(e => e.textContent = CONFIG.implantacao);
+  document.querySelectorAll('[data-whats]').forEach(e => {
+    e.href = 'https://wa.me/' + CONFIG.whatsapp + '?text=' + encodeURIComponent(e.dataset.whats);
+    e.target = '_blank';
+    e.rel = 'noopener';
+  });
+  const id = (CONFIG.video.match(/(?:v=|youtu\.be\/|shorts\/)([\w-]{11})/) || [])[1];
+  if (id) {
+    document.querySelector('[data-video]').src = 'https://www.youtube.com/embed/' + id;
+    document.getElementById('video-secao').hidden = false;
+  }
+</script>
+</body>
+</html>
