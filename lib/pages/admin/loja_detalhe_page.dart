@@ -139,6 +139,7 @@ class _LojaDetalhePageState extends State<LojaDetalhePage> {
                   l.valorMensal > 0 ? formatarMoeda(l.valorMensal) : '—',
                   l.emTeste ? 'em teste grátis' : null,
                 ),
+                _Info('Plano', l.plano.rotulo, l.plano.descricaoLimite),
                 if (!l.ativa)
                   _Info(
                     'Travada manualmente',

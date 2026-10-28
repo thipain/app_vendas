@@ -4,6 +4,8 @@ import 'package:firebase_core/firebase_core.dart';
 
 import '../core/permissoes.dart';
 import '../core/regra_exception.dart';
+import '../core/sessao.dart';
+import '../models/loja.dart';
 import '../models/usuario.dart';
 import 'auditoria_repository.dart';
 import 'banco.dart';
@@ -79,6 +81,22 @@ class UsuarioRepository {
     }
   }
 
+  /// Mensagem quando o plano da loja não comporta mais um usuário ativo
+  /// (null = cabe). O dono do sistema não conta, porque não é membro.
+  static String? motivoLimite(Loja? loja, List<Usuario> equipe) {
+    if (loja == null) return null;
+    final ativos = equipe.where((u) => u.ativo).length;
+    if (loja.cabeUsuario(ativos)) return null;
+    return 'O plano ${loja.plano.rotulo} permite ${loja.plano.descricaoLimite} '
+        'ativos e a loja já tem $ativos. Bloqueie um funcionário ou fale com '
+        'o suporte para mudar para o plano Completo.';
+  }
+
+  static void _validarLimite(List<Usuario> equipe) {
+    final motivo = motivoLimite(Sessao.instancia.loja, equipe);
+    if (motivo != null) throw RegraException(motivo);
+  }
+
   /// Cadastra um funcionário na loja em uso. Se a pessoa já tem conta (em
   /// outra loja), ela é apenas vinculada e continua com a mesma senha.
   Future<void> criar({
@@ -88,7 +106,9 @@ class UsuarioRepository {
     required String papel,
     required Set<String> permissoes,
     required String lojaNome,
+    required List<Usuario> equipe,
   }) async {
+    _validarLimite(equipe);
     final conta = await obterOuCriarConta(
       nome: nome,
       email: email,
@@ -128,6 +148,7 @@ class UsuarioRepository {
     Usuario depois, {
     required List<Usuario> equipe,
   }) async {
+    if (!antes.ativo && depois.ativo) _validarLimite(equipe);
     final perdeAdmin =
         antes.isAdmin && antes.ativo && (!depois.isAdmin || !depois.ativo);
     if (perdeAdmin &&

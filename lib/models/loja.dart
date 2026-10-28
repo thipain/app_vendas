@@ -1,5 +1,34 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Plano contratado pela loja. Define o limite de usuários ativos e o valor
+/// sugerido da mensalidade (o valor cobrado de cada loja fica em valorMensal).
+enum PlanoLoja {
+  essencial('Essencial', limiteUsuarios: 3, valorSugerido: 69),
+  completo('Completo', valorSugerido: 119);
+
+  final String rotulo;
+
+  /// null = usuários ilimitados.
+  final int? limiteUsuarios;
+  final double valorSugerido;
+
+  const PlanoLoja(
+    this.rotulo, {
+    this.limiteUsuarios,
+    required this.valorSugerido,
+  });
+
+  String get descricaoLimite => limiteUsuarios == null
+      ? 'usuários ilimitados'
+      : 'até $limiteUsuarios usuários';
+
+  static PlanoLoja doNome(Object? nome) => PlanoLoja.values.firstWhere(
+    (p) => p.name == nome,
+    // Lojas antigas (antes dos planos) e vitalícias ficam no Completo.
+    orElse: () => PlanoLoja.completo,
+  );
+}
+
 /// Situação da loja quanto ao acesso e à mensalidade.
 enum SituacaoLoja {
   semCobranca('Sem cobrança'),
@@ -47,6 +76,8 @@ class Loja {
   /// Período de teste grátis (até o primeiro pagamento).
   final bool emTeste;
 
+  final PlanoLoja plano;
+
   const Loja({
     required this.id,
     required this.nome,
@@ -62,7 +93,14 @@ class Loja {
     this.pagoAte,
     this.carenciaDias = 5,
     this.emTeste = false,
+    this.plano = PlanoLoja.completo,
   });
+
+  int? get limiteUsuarios => plano.limiteUsuarios;
+
+  /// true quando ainda cabe mais um usuário ativo no plano.
+  bool cabeUsuario(int ativos) =>
+      limiteUsuarios == null || ativos < limiteUsuarios!;
 
   /// Data em que a loja trava se não houver pagamento.
   DateTime? get travaEm => pagoAte?.add(Duration(days: carenciaDias));
@@ -110,6 +148,7 @@ class Loja {
       pagoAte: (d['pagoAte'] as Timestamp?)?.toDate(),
       carenciaDias: (d['carenciaDias'] as num?)?.toInt() ?? 5,
       emTeste: d['emTeste'] as bool? ?? false,
+      plano: PlanoLoja.doNome(d['plano']),
     );
   }
 
@@ -127,6 +166,7 @@ class Loja {
     'pagoAte': pagoAte == null ? null : Timestamp.fromDate(pagoAte!),
     'carenciaDias': carenciaDias,
     'emTeste': emTeste,
+    'plano': plano.name,
   };
 
   Loja copyWith({
@@ -141,6 +181,7 @@ class Loja {
     bool limparPagoAte = false,
     int? carenciaDias,
     bool? emTeste,
+    PlanoLoja? plano,
   }) => Loja(
     id: id,
     nome: nome ?? this.nome,
@@ -156,6 +197,7 @@ class Loja {
     pagoAte: limparPagoAte ? null : (pagoAte ?? this.pagoAte),
     carenciaDias: carenciaDias ?? this.carenciaDias,
     emTeste: emTeste ?? this.emTeste,
+    plano: plano ?? this.plano,
   );
 }
 

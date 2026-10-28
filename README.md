@@ -68,6 +68,9 @@ só liberam os dados de uma loja para os membros ativos dela.
     liberar, adicionar administrador, cobrar no WhatsApp, **entrar como suporte** e
     **excluir a loja** (apaga todos os dados dela para liberar espaço; pede para digitar o
     nome da loja e não pode ser desfeito; o histórico de mensalidades é mantido).
+  - **Planos**: cada loja é **Essencial** (até 3 usuários ativos) ou **Completo** (ilimitado);
+    lojas antigas e vitalícias ficam no Completo. O limite vale ao cadastrar ou reativar
+    funcionários em **Equipe e acessos**.
   - **Mensalidades**: pagamentos recebidos por período e lista de inadimplentes.
   - **Avisos**: mensagens exibidas no app de todas as lojas ou de uma loja.
   - **Auditoria do sistema**: tudo o que foi feito no painel.

@@ -275,6 +275,7 @@ class SistemaRepository {
     'pagoAte': l.pagoAte?.toIso8601String(),
     'carenciaDias': l.carenciaDias,
     'emTeste': l.emTeste,
+    'plano': l.plano.name,
   };
 
   /// Registra o pagamento de [meses] mensalidades e avança o vencimento.

@@ -4,6 +4,7 @@ import '../../core/permissoes.dart';
 import '../../core/sessao.dart';
 import '../../data/dados.dart';
 import '../../data/usuario_repository.dart';
+import '../../models/loja.dart';
 import '../../models/usuario.dart';
 import '../../widgets/filtro_periodo.dart';
 import '../../widgets/largura_maxima.dart';
@@ -70,6 +71,11 @@ class EquipePage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
+                    if (Sessao.instancia.loja case final loja?)
+                      _ResumoPlano(
+                        plano: loja.plano,
+                        ativos: lista.where((u) => u.ativo).length,
+                      ),
                     if (lista.isEmpty)
                       const EstadoVazio(
                         icone: Icons.groups_outlined,
@@ -191,6 +197,38 @@ class _CartaoUsuario extends StatelessWidget {
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+/// Plano da loja e quantos usuários ativos ele ainda comporta.
+class _ResumoPlano extends StatelessWidget {
+  final PlanoLoja plano;
+  final int ativos;
+
+  const _ResumoPlano({required this.plano, required this.ativos});
+
+  @override
+  Widget build(BuildContext context) {
+    final limite = plano.limiteUsuarios;
+    final cheio = limite != null && ativos >= limite;
+    final cores = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Card(
+        margin: EdgeInsets.zero,
+        color: cheio ? cores.errorContainer : null,
+        child: ListTile(
+          leading: const Icon(Icons.workspace_premium_outlined),
+          title: Text('Plano ${plano.rotulo}'),
+          subtitle: Text(
+            limite == null
+                ? '$ativos usuário(s) ativo(s) · usuários ilimitados'
+                : '$ativos de $limite usuários ativos'
+                      '${cheio ? ' · limite atingido' : ''}',
+          ),
         ),
       ),
     );

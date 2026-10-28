@@ -1,8 +1,10 @@
 import 'package:app_vendas/core/formatters.dart';
 import 'package:app_vendas/core/update/update_service.dart';
 import 'package:app_vendas/core/regra_exception.dart';
+import 'package:app_vendas/data/usuario_repository.dart';
 import 'package:app_vendas/models/caixa.dart';
 import 'package:app_vendas/models/loja.dart';
+import 'package:app_vendas/models/usuario.dart';
 import 'package:app_vendas/models/venda.dart';
 import 'package:app_vendas/widgets/seletor.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -188,6 +190,32 @@ void main() {
         DateTime(2026, 11, 27),
       );
       expect(proximoVencimento(null, 3, hoje), DateTime(2027, 1, 27));
+    });
+  });
+
+  group('plano da loja', () {
+    List<Usuario> equipe(int ativos, {int bloqueados = 0}) => [
+      for (var i = 0; i < ativos; i++)
+        Usuario(id: 'a$i', nome: 'A$i', email: 'a$i@x.com'),
+      for (var i = 0; i < bloqueados; i++)
+        Usuario(id: 'b$i', nome: 'B$i', email: 'b$i@x.com', ativo: false),
+    ];
+
+    test('Essencial limita 3 usuários ativos; bloqueados não contam', () {
+      const loja = Loja(id: 'l', nome: 'L', plano: PlanoLoja.essencial);
+      expect(
+        UsuarioRepository.motivoLimite(loja, equipe(2, bloqueados: 5)),
+        isNull,
+      );
+      expect(UsuarioRepository.motivoLimite(loja, equipe(3)), isNotNull);
+    });
+
+    test('Completo e lojas antigas não têm limite', () {
+      const loja = Loja(id: 'l', nome: 'L');
+      expect(loja.plano, PlanoLoja.completo);
+      expect(UsuarioRepository.motivoLimite(loja, equipe(50)), isNull);
+      expect(PlanoLoja.doNome(null), PlanoLoja.completo);
+      expect(PlanoLoja.doNome('essencial'), PlanoLoja.essencial);
     });
   });
 }

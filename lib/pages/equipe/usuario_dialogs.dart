@@ -42,6 +42,27 @@ const _niveis = {
 
 /// Abre o cadastro de um novo funcionário (precisa de internet).
 Future<void> novoFuncionario(BuildContext context) async {
+  final limite = UsuarioRepository.motivoLimite(
+    Sessao.instancia.loja,
+    Dados.equipe.value,
+  );
+  if (limite != null) {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.group_off_outlined),
+        title: const Text('Limite de usuários do plano'),
+        content: Text(limite),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Entendi'),
+          ),
+        ],
+      ),
+    );
+    return;
+  }
   final ok = await showDialog<bool>(
     context: context,
     barrierDismissible: false,
@@ -175,6 +196,7 @@ class _NovoFuncionarioDialogState extends State<_NovoFuncionarioDialog> {
         papel: _papel,
         permissoes: _papel == Usuario.papelAdmin ? const {} : _permissoes,
         lojaNome: Sessao.instancia.lojaNome,
+        equipe: Dados.equipe.value,
       );
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
@@ -218,7 +240,8 @@ class _NovoFuncionarioDialogState extends State<_NovoFuncionarioDialog> {
                 obscureText: !_verSenha,
                 decoration: InputDecoration(
                   labelText: 'Senha *',
-                  helperText: 'Pelo menos 8 caracteres. Se a pessoa já usa o '
+                  helperText:
+                      'Pelo menos 8 caracteres. Se a pessoa já usa o '
                       'app em outra loja, a senha dela continua a mesma.',
                   helperMaxLines: 2,
                   suffixIcon: IconButton(

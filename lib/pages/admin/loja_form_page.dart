@@ -37,7 +37,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
   late final _valor = TextEditingController(
     text: (_antes?.valorMensal ?? 0) > 0
         ? valorParaCampo(_antes!.valorMensal)
-        : '',
+        : (_nova ? valorParaCampo(PlanoLoja.completo.valorSugerido) : ''),
   );
   late final _carencia = TextEditingController(
     text: '${_antes?.carenciaDias ?? 5}',
@@ -51,6 +51,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
   /// Vencimento (edição) ou primeiro vencimento (nova loja sem teste).
   late DateTime? _pagoAte = _nova ? somarMeses(_hoje, 1) : _antes!.pagoAte;
   late bool _emTeste = _antes?.emTeste ?? false;
+  late PlanoLoja _plano = _antes?.plano ?? PlanoLoja.completo;
 
   bool _salvando = false;
   String? _erro;
@@ -108,6 +109,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
       pagoAte: _pagoAte,
       limparPagoAte: _pagoAte == null,
       emTeste: _pagoAte != null && _emTeste,
+      plano: _plano,
     );
   }
 
@@ -257,6 +259,26 @@ class _LojaFormPageState extends State<LojaFormPage> {
                     decoration: const InputDecoration(labelText: 'Observações'),
                   ),
                   const TituloSecao('Cobrança'),
+                  SegmentedButton<PlanoLoja>(
+                    segments: [
+                      for (final p in PlanoLoja.values)
+                        ButtonSegment(
+                          value: p,
+                          label: Text('${p.rotulo} · ${p.descricaoLimite}'),
+                        ),
+                    ],
+                    selected: {_plano},
+                    onSelectionChanged: (s) => setState(() {
+                      final antigo = _plano;
+                      _plano = s.first;
+                      // Troca o valor só se ainda era o sugerido do plano.
+                      final atual = lerValor(_valor.text);
+                      if (atual == null || atual == antigo.valorSugerido) {
+                        _valor.text = valorParaCampo(_plano.valorSugerido);
+                      }
+                    }),
+                  ),
+                  const SizedBox(height: 12),
                   par(
                     TextFormField(
                       controller: _valor,
