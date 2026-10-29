@@ -103,6 +103,26 @@ class ProdutoRepository {
     semAguardar(batch.commit(), 'ajuste de ${produto.nome}');
   }
 
+  /// Apaga as fotos gravadas pelas versões antigas (produtos não têm mais
+  /// foto), para deixar o catálogo leve no Firebase. Precisa de internet;
+  /// quando não há fotos, custa uma única leitura.
+  Future<void> removerFotosAntigas() async {
+    final comFoto = await _col
+        .where('foto', isGreaterThan: '')
+        .get(const GetOptions(source: Source.server));
+    if (comFoto.docs.isEmpty) return;
+    var batch = _db.batch();
+    var n = 0;
+    for (final d in comFoto.docs) {
+      batch.update(d.reference, {'foto': FieldValue.delete()});
+      if (++n % 400 == 0) {
+        await batch.commit();
+        batch = _db.batch();
+      }
+    }
+    await batch.commit();
+  }
+
   /// Exclusão lógica: vendas antigas continuam apontando para o produto, e a
   /// baixa de estoque de uma venda feita offline não falha ao sincronizar.
   void definirAtivo(Produto produto, bool ativo) {

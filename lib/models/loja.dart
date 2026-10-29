@@ -385,3 +385,52 @@ class Sistema {
     );
   }
 }
+
+/// Erro registrado por algum aparelho (coleção errosApp).
+class ErroApp {
+  final String id;
+  final String mensagem;
+  final String tipo;
+  final String stack;
+  final String origem;
+  final String? contexto;
+  final String versao;
+  final String plataforma;
+  final String? lojaId;
+  final String? lojaNome;
+  final String? email;
+  final DateTime data;
+
+  const ErroApp({
+    required this.id,
+    required this.mensagem,
+    required this.tipo,
+    required this.stack,
+    required this.origem,
+    this.contexto,
+    required this.versao,
+    required this.plataforma,
+    this.lojaId,
+    this.lojaNome,
+    this.email,
+    required this.data,
+  });
+
+  factory ErroApp.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final d = doc.data() ?? const {};
+    return ErroApp(
+      id: doc.id,
+      mensagem: d['mensagem'] as String? ?? '',
+      tipo: d['tipo'] as String? ?? '',
+      stack: d['stack'] as String? ?? '',
+      origem: d['origem'] as String? ?? '',
+      contexto: d['contexto'] as String?,
+      versao: d['versao'] as String? ?? '',
+      plataforma: d['plataforma'] as String? ?? '',
+      lojaId: d['lojaId'] as String?,
+      lojaNome: d['lojaNome'] as String?,
+      email: d['email'] as String?,
+      data: (d['data'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+}

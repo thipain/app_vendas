@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'app.dart';
+import 'core/relatorio_erros.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -15,6 +16,9 @@ Future<void> main() async {
     persistenceEnabled: true,
     cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
   );
+
+  // Erros do app vão para o Firebase (painel administrativo → Erros do app).
+  await RelatorioErros.iniciar();
 
   runApp(const App());
 }

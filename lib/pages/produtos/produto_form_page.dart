@@ -1,14 +1,11 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/formatters.dart';
-import '../../core/imagem.dart';
 import '../../core/regra_exception.dart';
 import '../../data/dados.dart';
 import '../../data/produto_repository.dart';
 import '../../models/produto.dart';
-import '../../widgets/foto_produto.dart';
 import '../../widgets/largura_maxima.dart';
 import '../../widgets/mensagens.dart';
 import '../estoque/estoque_widgets.dart';
@@ -55,7 +52,6 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
     text: '${_original?.estoqueMinimo ?? 0}',
   );
   final _motivo = TextEditingController();
-  late String _foto = _original?.foto ?? '';
 
   @override
   void dispose() {
@@ -84,15 +80,6 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
       if (p.categoria.trim().isNotEmpty) s.add(p.categoria.trim());
     }
     return s.toList();
-  }
-
-  Future<void> _escolherFoto({bool camera = false}) async {
-    try {
-      final f = await escolherImagem(camera: camera);
-      if (f != null && mounted) setState(() => _foto = f);
-    } catch (_) {
-      if (mounted) avisar(context, 'Use JPG, PNG ou WEBP de até 5 MB.');
-    }
   }
 
   void _salvar() {
@@ -148,7 +135,6 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
       estoque: _original?.estoque ?? 0,
       estoqueMinimo: minimo!,
       unidade: unidade,
-      foto: _foto,
       ativo: _original?.ativo ?? true,
     );
 
@@ -178,7 +164,6 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    final android = defaultTargetPlatform == TargetPlatform.android;
     final inteiro = [FilteringTextInputFormatter.digitsOnly];
     const decimal = TextInputType.numberWithOptions(decimal: true);
     return Scaffold(
@@ -190,45 +175,6 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Row(
-              children: [
-                FotoProduto(foto: _foto, nome: _nome.text, tamanho: 88),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: _escolherFoto,
-                        icon: const Icon(Icons.photo_library_outlined),
-                        label: Text(
-                          _foto.isEmpty ? 'Escolher foto' : 'Trocar foto',
-                        ),
-                      ),
-                      if (android)
-                        OutlinedButton.icon(
-                          onPressed: () => _escolherFoto(camera: true),
-                          icon: const Icon(Icons.photo_camera_outlined),
-                          label: const Text('Câmera'),
-                        ),
-                      if (_foto.isNotEmpty)
-                        TextButton.icon(
-                          onPressed: () => setState(() => _foto = ''),
-                          icon: const Icon(Icons.delete_outline),
-                          label: const Text('Remover foto'),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Foto opcional (JPG, PNG ou WEBP).',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 16),
             TextField(
               controller: _nome,
               maxLength: 160,

@@ -331,10 +331,17 @@
     }
 
     .prod i {
-      display: block;
-      height: 42px;
-      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
       margin-bottom: 6px;
+      background: var(--verde-claro);
+      color: var(--verde);
+      font-style: normal;
+      font-weight: 800;
+      font-size: 13px;
     }
 
     .prod b {
@@ -775,15 +782,10 @@
             <div class="tela-topo"><b>Nova venda</b><span class="nuvem">☁ sincronizado</span></div>
             <div class="caixa-ok">● Caixa aberto</div>
             <div class="produtos">
-              <div class="prod"><i style="background:linear-gradient(135deg,#f3c25b,#d18b1f)"></i><b>Cerveja
-                  350ml</b><span>R$ 5,50</span></div>
-              <div class="prod"><i style="background:linear-gradient(135deg,#8c4a2f,#4a2014)"></i><b>Whisky
-                  1L</b><span>R$ 129,90</span></div>
-              <div class="prod"><i
-                  style="background:linear-gradient(135deg,#59a5d8,#1f5f8b)"></i><b>Energético</b><span>R$ 9,00</span>
-              </div>
-              <div class="prod"><i style="background:linear-gradient(135deg,#cfe8f7,#8ec5e6)"></i><b>Gelo
-                  5kg</b><span>R$ 12,00</span></div>
+              <div class="prod"><i>C</i><b>Cerveja 350ml</b><span>R$ 5,50</span></div>
+              <div class="prod"><i>W</i><b>Whisky 1L</b><span>R$ 129,90</span></div>
+              <div class="prod"><i>E</i><b>Energético</b><span>R$ 9,00</span></div>
+              <div class="prod"><i>G</i><b>Gelo 5kg</b><span>R$ 12,00</span></div>
             </div>
             <div class="carrinho"><span>4 itens</span><b>R$ 156,40</b></div>
           </div>
@@ -840,8 +842,8 @@
         <div class="cartao">
           <div class="icone">🛒</div>
           <h3>Vendas rápidas</h3>
-          <p>Catálogo com fotos, busca e leitor de código de barras. Pix, dinheiro com troco, débito, crédito em até 24x
-            e pagamento dividido.</p>
+          <p>Catálogo leve e rápido, busca por nome ou código e leitor de código de barras. Pix, dinheiro com troco,
+            débito, crédito em até 24x e pagamento dividido.</p>
         </div>
         <div class="cartao">
           <div class="icone">🧾</div>

@@ -8,6 +8,7 @@ import '../../widgets/largura_maxima.dart';
 import 'admin_comum.dart';
 import 'auditoria_sistema_page.dart';
 import 'avisos_page.dart';
+import 'erros_app_page.dart';
 import 'lojas_page.dart';
 import 'mensalidades_page.dart';
 import 'visao_geral_page.dart';
@@ -52,6 +53,11 @@ final _secoes = [
     (e) => MensalidadesPage(onEntrarLoja: e),
   ),
   _Secao('Avisos', Icons.campaign_outlined, (_) => const AvisosPage()),
+  _Secao(
+    'Erros do app',
+    Icons.bug_report_outlined,
+    (_) => const ErrosAppPage(),
+  ),
   _Secao(
     'Auditoria do sistema',
     Icons.manage_search,

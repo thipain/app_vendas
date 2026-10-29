@@ -57,7 +57,7 @@ Future<Produto?> selecionarProduto(
     textoBusca: (p) => '${p.nome} ${p.codigo} ${p.categoria}',
     habilitado: exigirEstoque ? (p) => p.estoque > 0 : null,
     itemBuilder: (p) => ListTile(
-      leading: FotoProduto(foto: p.foto, nome: p.nome, tamanho: 40),
+      leading: FotoProduto(nome: p.nome, tamanho: 40),
       title: Text(p.ativo ? p.nome : '${p.nome} — desativado'),
       subtitle: Text(
           '${p.codigo.isEmpty ? '' : '${p.codigo} · '}saldo ${p.estoque} ${p.unidade}'),

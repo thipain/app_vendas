@@ -14,7 +14,7 @@ Sistema completo de PDV para adega/loja, com todas as funções do AdegaPDV (ver
 - **Visão geral**: vendas do dia, comandas abertas, itens em alerta e atalhos
 - **Caixa**: abertura, suprimento, sangria, fechamento com conferência da diferença e
   histórico dos últimos fechamentos (só dinheiro movimenta a gaveta)
-- **Nova venda**: catálogo com fotos e busca, carrinho limitado ao estoque, desconto em R$
+- **Nova venda**: catálogo com busca (sem fotos, para manter o Firebase leve), carrinho limitado ao estoque, desconto em R$
   ou %, Pix/Dinheiro/Débito/Crédito (até 24x)/VR, troco, pagamento dividido em duas formas,
   cliente opcional e comprovante
 - **Comandas**: abrir, lançar itens (o estoque sai na hora), alterar/remover itens,
@@ -25,7 +25,7 @@ Sistema completo de PDV para adega/loja, com todas as funções do AdegaPDV (ver
 - **Clientes**: cadastro de clientes
 
 **Produtos e estoque**
-- Produtos com foto, código, categoria, preço de venda e custo, unidade, estoque mínimo,
+- Produtos com código, categoria, preço de venda e custo, unidade, estoque mínimo,
   ajuste de saldo com motivo obrigatório, desativação e restauração
 - **Notificações** de itens zerados e com estoque baixo (sino com contador)
 - **Notas de entrada** (controle interno): fornecedor, custo, vários produtos, edição com
@@ -73,6 +73,8 @@ só liberam os dados de uma loja para os membros ativos dela.
     funcionários em **Equipe e acessos**.
   - **Mensalidades**: pagamentos recebidos por período e lista de inadimplentes.
   - **Avisos**: mensagens exibidas no app de todas as lojas ou de uma loja.
+  - **Erros do app**: erros e falhas de sincronização enviados pelos aparelhos das lojas,
+    agrupados, com versão, plataforma e detalhes técnicos.
   - **Auditoria do sistema**: tudo o que foi feito no painel.
 - **Trava por mensalidade**: depois do vencimento a loja entra em **carência** (a equipe vê o
   aviso) e, ao fim dela, **trava sozinha** — a regra do Firestore usa a hora do servidor, então

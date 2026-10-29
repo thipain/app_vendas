@@ -183,7 +183,6 @@ class _Reposicao extends StatelessWidget {
                   for (final p in lista)
                     ListTile(
                       leading: FotoProduto(
-                        foto: p.foto,
                         nome: p.nome,
                         tamanho: 40,
                       ),

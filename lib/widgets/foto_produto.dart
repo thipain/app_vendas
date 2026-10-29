@@ -10,7 +10,8 @@ Uint8List? bytesDaFoto(String base64Foto) {
   return _cache.putIfAbsent(base64Foto, () => base64Decode(base64Foto));
 }
 
-/// Foto do produto (ou a inicial do nome quando não há foto).
+/// Inicial do nome em um quadrado colorido, ou a imagem em base64
+/// quando houver (usado na logo da loja; produtos não têm foto).
 class FotoProduto extends StatelessWidget {
   final String foto;
   final String nome;
@@ -19,7 +20,7 @@ class FotoProduto extends StatelessWidget {
 
   const FotoProduto({
     super.key,
-    required this.foto,
+    this.foto = '',
     required this.nome,
     this.tamanho = 44,
     this.raio = 8,

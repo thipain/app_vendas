@@ -15,8 +15,6 @@ class Produto {
   final int estoqueMinimo;
   final String unidade;
 
-  /// Foto pequena (JPEG) em base64; vazio quando não há foto.
-  final String foto;
   final bool ativo;
 
   /// true enquanto a última alteração ainda não foi enviada ao servidor.
@@ -32,7 +30,6 @@ class Produto {
     this.estoque = 0,
     this.estoqueMinimo = 0,
     this.unidade = 'un',
-    this.foto = '',
     this.ativo = true,
     this.pendente = false,
   });
@@ -54,7 +51,6 @@ class Produto {
       estoque: (d['estoque'] as num?)?.toInt() ?? 0,
       estoqueMinimo: (d['estoqueMinimo'] as num?)?.toInt() ?? 0,
       unidade: d['unidade'] as String? ?? 'un',
-      foto: d['foto'] as String? ?? '',
       ativo: d['ativo'] as bool? ?? true,
       pendente: doc.metadata.hasPendingWrites,
     );
@@ -71,7 +67,6 @@ class Produto {
         'custo': custo,
         'estoqueMinimo': estoqueMinimo,
         'unidade': unidade,
-        'foto': foto,
         'ativo': ativo,
       };
 
@@ -85,7 +80,6 @@ class Produto {
         estoque: estoque ?? this.estoque,
         estoqueMinimo: estoqueMinimo,
         unidade: unidade,
-        foto: foto,
         ativo: ativo,
       );
 

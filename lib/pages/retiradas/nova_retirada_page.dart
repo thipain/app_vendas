@@ -240,7 +240,7 @@ class _NovaRetiradaPageState extends State<NovaRetiradaPage> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
           children: [
-            FotoProduto(foto: p.foto, nome: p.nome, tamanho: 40),
+            FotoProduto(nome: p.nome, tamanho: 40),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

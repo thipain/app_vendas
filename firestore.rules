@@ -85,6 +85,17 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Erros enviados pelos aparelhos; só o dono do sistema lê e apaga.
+    match /errosApp/{id} {
+      allow create: if logado()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.mensagem is string
+        && request.resource.data.mensagem.size() <= 1000
+        && request.resource.data.stack.size() <= 4000;
+      allow read, delete: if dono();
+      allow update: if false;
+    }
+
     // Avisos do dono do sistema para as lojas.
     match /avisos/{id} {
       allow read: if logado();

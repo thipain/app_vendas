@@ -295,7 +295,7 @@ class _ProdutosPageState extends State<ProdutosPage> {
               flex: 5,
               child: Row(
                 children: [
-                  FotoProduto(foto: p.foto, nome: p.nome, tamanho: 40),
+                  FotoProduto(nome: p.nome, tamanho: 40),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -366,7 +366,7 @@ class _ProdutosPageState extends State<ProdutosPage> {
     final t = Theme.of(context).textTheme;
     return ListTile(
       onTap: p.ativo ? () => _abrirForm(p) : null,
-      leading: FotoProduto(foto: p.foto, nome: p.nome),
+      leading: FotoProduto(nome: p.nome),
       title: Row(
         children: [
           Flexible(child: Text(p.nome, overflow: TextOverflow.ellipsis)),

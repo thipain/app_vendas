@@ -449,6 +449,31 @@ class SistemaRepository {
     await batch.commit();
   }
 
+  CollectionReference<Map<String, dynamic>> get _erros =>
+      _db.collection('errosApp');
+
+  Stream<List<ErroApp>> watchErros(DateTime inicio, DateTime fim) => _erros
+      .where('data', isGreaterThanOrEqualTo: Timestamp.fromDate(inicio))
+      .where('data', isLessThan: Timestamp.fromDate(fim))
+      .orderBy('data', descending: true)
+      .limit(1000)
+      .snapshots()
+      .map((s) => s.docs.map(ErroApp.fromDoc).toList());
+
+  /// Apaga registros de erro já analisados.
+  Future<void> excluirErros(Iterable<String> ids) async {
+    var batch = _db.batch();
+    var n = 0;
+    for (final id in ids) {
+      batch.delete(_erros.doc(id));
+      if (++n % 400 == 0) {
+        await batch.commit();
+        batch = _db.batch();
+      }
+    }
+    await batch.commit();
+  }
+
   /// true quando ainda há dados da versão anterior (sem lojas) para migrar.
   Future<bool> temDadosAntigos(Sistema sistema) async {
     if (sistema.migradoPara != null) return false;

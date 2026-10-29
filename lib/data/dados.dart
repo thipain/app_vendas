@@ -52,6 +52,11 @@ class Dados {
         onError: (Object e) => debugPrint('Caixa: $e'),
       ),
     );
+    if (Sessao.instancia.isAdmin) {
+      ProdutoRepository().removerFotosAntigas().catchError(
+        (Object e) => debugPrint('Limpeza de fotos: $e'),
+      );
+    }
     _subs.add(
       UsuarioRepository().watchTodos().listen(
         (l) => equipe.value = l,

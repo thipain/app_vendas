@@ -90,7 +90,7 @@ class NotificacoesPage extends StatelessWidget {
                         for (final (i, p) in lista.indexed) ...[
                           if (i > 0) const Divider(height: 1),
                           ListTile(
-                            leading: FotoProduto(foto: p.foto, nome: p.nome),
+                            leading: FotoProduto(nome: p.nome),
                             title: Text(p.nome),
                             subtitle: Text(
                               [

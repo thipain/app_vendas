@@ -911,7 +911,6 @@ class _ProdutoCard extends StatelessWidget {
                     color: t.colorScheme.surfaceContainerHighest,
                     alignment: Alignment.center,
                     child: FotoProduto(
-                      foto: p.foto,
                       nome: p.nome,
                       tamanho: 92,
                       raio: 10,
@@ -1011,7 +1010,7 @@ class _LinhaCarrinho extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          FotoProduto(foto: p.foto, nome: p.nome, tamanho: 36),
+          FotoProduto(nome: p.nome, tamanho: 36),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
