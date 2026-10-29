@@ -1,4 +1,5 @@
 import 'package:app_vendas/core/formatters.dart';
+import 'package:app_vendas/core/importacao_produtos.dart';
 import 'package:app_vendas/core/update/update_service.dart';
 import 'package:app_vendas/core/regra_exception.dart';
 import 'package:app_vendas/data/usuario_repository.dart';
@@ -216,6 +217,59 @@ void main() {
       expect(UsuarioRepository.motivoLimite(loja, equipe(50)), isNull);
       expect(PlanoLoja.doNome(null), PlanoLoja.completo);
       expect(PlanoLoja.doNome('essencial'), PlanoLoja.essencial);
+    });
+  });
+
+  group('importação de produtos', () {
+    test('lê CSV com cabeçalho, ponto e vírgula e vírgula decimal', () {
+      final l = lerPlanilhaProdutos(
+        'nome;codigo;categoria;preco;custo;estoque;minimo;unidade\n'
+        'Cerveja Lata;789;Cervejas;4,50;2,6;1.200;48;un\n'
+        'Gelo;790;;14.90;;20;8;pct\n',
+      );
+      expect(l, hasLength(2));
+      expect(l.every((x) => x.valida), isTrue);
+      expect(l[0].produto!.preco, 4.5);
+      expect(l[0].estoqueInicial, 1200);
+      expect(l[1].produto!.preco, 14.9);
+      expect(l[1].produto!.categoria, 'Geral');
+      expect(l[1].produto!.custo, 0);
+    });
+
+    test('aceita colunas coladas do Excel (tab) sem cabeçalho', () {
+      final l = lerPlanilhaProdutos(
+        'Whisky 1L\tW1\tWhiskies\t129,90\t89\t10\t3\tun',
+      );
+      expect(l.single.valida, isTrue);
+      expect(l.single.produto!.codigo, 'W1');
+      expect(l.single.produto!.estoqueMinimo, 3);
+    });
+
+    test('mapeia cabeçalho em outra ordem e com sinônimos', () {
+      final l = lerPlanilhaProdutos(
+        'SKU,Produto,Preço de venda,Quantidade\nA1,Água 500ml,3.00,96',
+      );
+      expect(l.single.valida, isTrue);
+      expect(l.single.produto!.nome, 'Água 500ml');
+      expect(l.single.estoqueInicial, 96);
+    });
+
+    test('recusa código repetido, já cadastrado e valores inválidos', () {
+      final l = lerPlanilhaProdutos(
+        'A;1;C;1;0;1;0;un\n'
+        'B;1;C;1;0;1;0;un\n'
+        'C;2;C;1;0;1;0;un\n'
+        'D;3;C;abc;0;1;0;un\n'
+        'E;4;C;1;0;2,5;0;un\n'
+        ';5;C;1;0;1;0;un',
+        codigosExistentes: {'2'},
+      );
+      expect(l.map((x) => x.valida), [true, false, false, false, false, false]);
+      expect(l[1].erro, contains('repetido'));
+      expect(l[2].erro, contains('já cadastrado'));
+      expect(l[3].erro, contains('Preço'));
+      expect(l[4].erro, contains('Estoque'));
+      expect(l[5].erro, contains('nome'));
     });
   });
 }

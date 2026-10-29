@@ -68,10 +68,16 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // E-mail → uid, para vincular a mesma pessoa a mais de uma loja.
+    // E-mail → uid e a loja em que a conta está (uma loja ativa por vez).
+    // O administrador de uma loja só vincula contas livres (lojaId nulo) à
+    // própria loja; o dono do sistema altera qualquer uma.
     match /contas/{email} {
-      allow read, create: if logado();
-      allow update: if dono();
+      allow read: if logado();
+      allow create: if logado();
+      allow update: if dono()
+        || (request.resource.data.uid == resource.data.uid
+            && resource.data.get('lojaId', null) == null
+            && adminNa(request.resource.data.lojaId));
       allow delete: if false;
     }
 

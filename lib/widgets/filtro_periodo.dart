@@ -7,8 +7,8 @@ class Periodo {
   final DateTime ultimoDia;
 
   Periodo(DateTime de, DateTime ate)
-      : inicio = DateTime(de.year, de.month, de.day),
-        ultimoDia = DateTime(ate.year, ate.month, ate.day);
+    : inicio = DateTime(de.year, de.month, de.day),
+      ultimoDia = DateTime(ate.year, ate.month, ate.day);
 
   /// Fim exclusivo (00:00 do dia seguinte ao último), para as consultas.
   DateTime get fim => ultimoDia.add(const Duration(days: 1));
@@ -41,8 +41,11 @@ class FiltroPeriodo extends StatelessWidget {
   final Periodo periodo;
   final ValueChanged<Periodo> onChanged;
 
-  const FiltroPeriodo(
-      {super.key, required this.periodo, required this.onChanged});
+  const FiltroPeriodo({
+    super.key,
+    required this.periodo,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -54,8 +57,10 @@ class FiltroPeriodo extends StatelessWidget {
           context: context,
           firstDate: DateTime(2020),
           lastDate: DateTime.now().add(const Duration(days: 1)),
-          initialDateRange:
-              DateTimeRange(start: periodo.inicio, end: periodo.ultimoDia),
+          initialDateRange: DateTimeRange(
+            start: periodo.inicio,
+            end: periodo.ultimoDia,
+          ),
         );
         if (r != null) onChanged(Periodo(r.start, r.end));
       },
@@ -69,8 +74,12 @@ class EstadoVazio extends StatelessWidget {
   final String titulo;
   final String? mensagem;
 
-  const EstadoVazio(
-      {super.key, required this.icone, required this.titulo, this.mensagem});
+  const EstadoVazio({
+    super.key,
+    required this.icone,
+    required this.titulo,
+    this.mensagem,
+  });
 
   @override
   Widget build(BuildContext context) {

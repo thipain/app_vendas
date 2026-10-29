@@ -9,6 +9,7 @@ import '../../models/loja.dart';
 import '../../widgets/confirmar.dart';
 import '../../widgets/mensagens.dart';
 import 'loja_detalhe_page.dart';
+import '../../widgets/conta_existente.dart';
 
 /// Utilitários compartilhados pelas telas do painel administrativo.
 
@@ -521,11 +522,15 @@ Future<void> alternarTrava(BuildContext context, Loja loja) async {
 // ------------------------------------------------------- Administrador
 
 Future<void> adicionarAdministrador(BuildContext context, Loja loja) async {
-  final ok = await showDialog<bool>(
+  // O diálogo devolve true, ou o e-mail quando a pessoa já tinha conta.
+  final r = await showDialog<Object>(
     context: context,
     builder: (_) => DialogAdministrador(loja: loja),
   );
-  if (ok == true && context.mounted) {
+  if (!context.mounted) return;
+  if (r is String) {
+    await avisarContaExistente(context, r);
+  } else if (r == true) {
     avisar(context, 'Administrador adicionado.');
   }
 }
@@ -563,13 +568,17 @@ class _DialogAdministradorState extends State<DialogAdministrador> {
       _erro = null;
     });
     try {
-      await SistemaRepository().adicionarAdministrador(
+      final existente = await SistemaRepository().adicionarAdministrador(
         widget.loja,
         nome: _nome.text.trim(),
         email: _email.text.trim(),
         senha: _senha.text,
       );
-      if (mounted) Navigator.pop(context, true);
+      if (!mounted) return;
+      Navigator.pop<Object>(
+        context,
+        existente ? _email.text.trim().toLowerCase() : true,
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() {

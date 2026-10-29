@@ -127,7 +127,8 @@ class SistemaRepository {
 
   /// Cadastra uma loja e o administrador dela (conta nova ou já existente).
   /// Precisa de internet.
-  Future<String> criarLoja({
+  /// Retorna o id da loja e se o administrador já tinha conta (senha antiga).
+  Future<({String lojaId, bool contaExistente})> criarLoja({
     required String nomeLoja,
     required String nomeAdmin,
     required String emailAdmin,
@@ -136,12 +137,14 @@ class SistemaRepository {
     int diasTeste = 0,
   }) async {
     final n = _validarNomeLoja(nomeLoja);
+    final loja = Banco.lojas.doc();
     final conta = await UsuarioRepository.obterOuCriarConta(
       nome: nomeAdmin,
       email: emailAdmin,
       senha: senhaAdmin,
+      lojaId: loja.id,
+      lojaNome: n,
     );
-    final loja = Banco.lojas.doc();
     final admin = Usuario(
       id: conta.uid,
       nome: nomeAdmin.trim(),
@@ -174,11 +177,12 @@ class SistemaRepository {
       dados: {'nome': n, 'admin': admin.email, 'contaExistente': !conta.nova},
     );
     await batch.commit();
-    return loja.id;
+    return (lojaId: loja.id, contaExistente: !conta.nova);
   }
 
   /// Adiciona outro administrador a uma loja (ex.: o dono de duas lojas).
-  Future<void> adicionarAdministrador(
+  /// Retorna true quando a pessoa já tinha conta (senha antiga).
+  Future<bool> adicionarAdministrador(
     Loja loja, {
     required String nome,
     required String email,
@@ -188,6 +192,8 @@ class SistemaRepository {
       nome: nome,
       email: email,
       senha: senha,
+      lojaId: loja.id,
+      lojaNome: loja.nome,
     );
     final ref = UsuarioRepository.membrosDa(loja.id).doc(conta.uid);
     final atual = await ref.get(const GetOptions(source: Source.server));
@@ -214,6 +220,7 @@ class SistemaRepository {
       dados: {'email': admin.email},
     );
     await batch.commit();
+    return !conta.nova;
   }
 
   Future<void> renomearLoja(Loja loja, String nome) async {
@@ -415,6 +422,20 @@ class SistemaRepository {
     void Function(String etapa)? progresso,
   }) async {
     final lojaRef = Banco.lojas.doc(loja.id);
+    progresso?.call('Liberando os e-mails da equipe...');
+    final membros = await lojaRef
+        .collection('membros')
+        .get(const GetOptions(source: Source.server));
+    for (final m in membros.docs) {
+      final email = (m.data()['email'] as String? ?? '').trim().toLowerCase();
+      if (email.isEmpty) continue;
+      final conta = Banco.contas.doc(email);
+      final dados = (await conta.get(const GetOptions(source: Source.server)))
+          .data();
+      if (dados != null && dados['lojaId'] == loja.id) {
+        await conta.update({'lojaId': null, 'lojaNome': null});
+      }
+    }
     for (final c in [...colecoesDaLoja, 'config', 'membros']) {
       progresso?.call('Excluindo $c...');
       while (true) {

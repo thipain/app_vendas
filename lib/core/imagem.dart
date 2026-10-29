@@ -21,11 +21,14 @@ Future<String?> escolherImagem({
     throw const FormatException('Use uma imagem JPG, PNG ou WEBP.');
   }
   final reduzida = original.width >= original.height
-      ? (original.width > lado ? img.copyResize(original, width: lado) : original)
+      ? (original.width > lado
+            ? img.copyResize(original, width: lado)
+            : original)
       : (original.height > lado
-          ? img.copyResize(original, height: lado)
-          : original);
-  final saida =
-      png ? img.encodePng(reduzida) : img.encodeJpg(reduzida, quality: 72);
+            ? img.copyResize(original, height: lado)
+            : original);
+  final saida = png
+      ? img.encodePng(reduzida)
+      : img.encodeJpg(reduzida, quality: 72);
   return base64Encode(saida);
 }

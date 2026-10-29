@@ -17,19 +17,19 @@ class ItemNotaEntrada {
       (quantidade * custoUnitario * 100).roundToDouble() / 100;
 
   factory ItemNotaEntrada.fromMap(Map<String, dynamic> m) => ItemNotaEntrada(
-        produtoId: m['produtoId'] as String? ?? '',
-        produtoNome: m['produtoNome'] as String? ?? '',
-        quantidade: (m['quantidade'] as num?)?.toInt() ?? 0,
-        custoUnitario: (m['custoUnitario'] as num?)?.toDouble() ?? 0,
-      );
+    produtoId: m['produtoId'] as String? ?? '',
+    produtoNome: m['produtoNome'] as String? ?? '',
+    quantidade: (m['quantidade'] as num?)?.toInt() ?? 0,
+    custoUnitario: (m['custoUnitario'] as num?)?.toDouble() ?? 0,
+  );
 
   Map<String, dynamic> toMap() => {
-        'produtoId': produtoId,
-        'produtoNome': produtoNome,
-        'quantidade': quantidade,
-        'custoUnitario': custoUnitario,
-        'custoTotal': custoTotal,
-      };
+    'produtoId': produtoId,
+    'produtoNome': produtoNome,
+    'quantidade': quantidade,
+    'custoUnitario': custoUnitario,
+    'custoTotal': custoTotal,
+  };
 }
 
 /// Nota de entrada de mercadorias (controle interno, não é NF-e).
@@ -77,7 +77,9 @@ class NotaEntrada {
       total: (d['total'] as num?)?.toDouble() ?? 0,
       observacao: d['observacao'] as String? ?? '',
       itens: (d['itens'] as List? ?? const [])
-          .map((e) => ItemNotaEntrada.fromMap(Map<String, dynamic>.from(e as Map)))
+          .map(
+            (e) => ItemNotaEntrada.fromMap(Map<String, dynamic>.from(e as Map)),
+          )
           .toList(),
       criadoPorNome: (d['criadoPor'] as Map?)?['nome'] as String? ?? '',
       editadoPorNome: (d['editadoPor'] as Map?)?['nome'] as String?,

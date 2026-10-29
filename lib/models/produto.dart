@@ -59,39 +59,39 @@ class Produto {
   /// Campos cadastrais. O estoque não entra aqui: ele só muda por
   /// movimentações (venda, entrada, ajuste...), sempre com FieldValue.increment.
   Map<String, dynamic> toMap() => {
-        'nome': nome,
-        'nomeBusca': nome.toLowerCase(),
-        'codigo': codigo,
-        'categoria': categoria,
-        'preco': preco,
-        'custo': custo,
-        'estoqueMinimo': estoqueMinimo,
-        'unidade': unidade,
-        'ativo': ativo,
-      };
+    'nome': nome,
+    'nomeBusca': nome.toLowerCase(),
+    'codigo': codigo,
+    'categoria': categoria,
+    'preco': preco,
+    'custo': custo,
+    'estoqueMinimo': estoqueMinimo,
+    'unidade': unidade,
+    'ativo': ativo,
+  };
 
   Produto copyWith({String? id, int? estoque, double? custo}) => Produto(
-        id: id ?? this.id,
-        nome: nome,
-        codigo: codigo,
-        categoria: categoria,
-        preco: preco,
-        custo: custo ?? this.custo,
-        estoque: estoque ?? this.estoque,
-        estoqueMinimo: estoqueMinimo,
-        unidade: unidade,
-        ativo: ativo,
-      );
+    id: id ?? this.id,
+    nome: nome,
+    codigo: codigo,
+    categoria: categoria,
+    preco: preco,
+    custo: custo ?? this.custo,
+    estoque: estoque ?? this.estoque,
+    estoqueMinimo: estoqueMinimo,
+    unidade: unidade,
+    ativo: ativo,
+  );
 
   /// Dados para a auditoria (sem a foto).
   Map<String, dynamic> resumo() => {
-        'nome': nome,
-        'codigo': codigo,
-        'categoria': categoria,
-        'preco': preco,
-        'custo': custo,
-        'estoqueMinimo': estoqueMinimo,
-        'unidade': unidade,
-        'ativo': ativo,
-      };
+    'nome': nome,
+    'codigo': codigo,
+    'categoria': categoria,
+    'preco': preco,
+    'custo': custo,
+    'estoqueMinimo': estoqueMinimo,
+    'unidade': unidade,
+    'ativo': ativo,
+  };
 }

@@ -12,16 +12,16 @@ class ItemReceita {
   });
 
   factory ItemReceita.fromMap(Map<String, dynamic> m) => ItemReceita(
-        produtoId: m['produtoId'] as String? ?? '',
-        produtoNome: m['produtoNome'] as String? ?? '',
-        quantidade: (m['quantidade'] as num?)?.toInt() ?? 0,
-      );
+    produtoId: m['produtoId'] as String? ?? '',
+    produtoNome: m['produtoNome'] as String? ?? '',
+    quantidade: (m['quantidade'] as num?)?.toInt() ?? 0,
+  );
 
   Map<String, dynamic> toMap() => {
-        'produtoId': produtoId,
-        'produtoNome': produtoNome,
-        'quantidade': quantidade,
-      };
+    'produtoId': produtoId,
+    'produtoNome': produtoNome,
+    'quantidade': quantidade,
+  };
 }
 
 List<ItemReceita> _itens(Object? v) => (v as List? ?? const [])
@@ -69,13 +69,13 @@ class Receita {
   }
 
   Map<String, dynamic> toMap() => {
-        'nome': nome,
-        'nomeBusca': nome.toLowerCase(),
-        'tipo': tipo,
-        'ativo': ativo,
-        'entradas': entradas.map((i) => i.toMap()).toList(),
-        'saidas': saidas.map((i) => i.toMap()).toList(),
-      };
+    'nome': nome,
+    'nomeBusca': nome.toLowerCase(),
+    'tipo': tipo,
+    'ativo': ativo,
+    'entradas': entradas.map((i) => i.toMap()).toList(),
+    'saidas': saidas.map((i) => i.toMap()).toList(),
+  };
 }
 
 class ItemOperacao {
@@ -98,22 +98,22 @@ class ItemOperacao {
   });
 
   factory ItemOperacao.fromMap(Map<String, dynamic> m) => ItemOperacao(
-        produtoId: m['produtoId'] as String? ?? '',
-        produtoNome: m['produtoNome'] as String? ?? '',
-        direcao: m['direcao'] as String? ?? 'entrada',
-        quantidade: (m['quantidade'] as num?)?.toInt() ?? 0,
-        estoqueAntes: (m['estoqueAntes'] as num?)?.toInt() ?? 0,
-        estoqueDepois: (m['estoqueDepois'] as num?)?.toInt() ?? 0,
-      );
+    produtoId: m['produtoId'] as String? ?? '',
+    produtoNome: m['produtoNome'] as String? ?? '',
+    direcao: m['direcao'] as String? ?? 'entrada',
+    quantidade: (m['quantidade'] as num?)?.toInt() ?? 0,
+    estoqueAntes: (m['estoqueAntes'] as num?)?.toInt() ?? 0,
+    estoqueDepois: (m['estoqueDepois'] as num?)?.toInt() ?? 0,
+  );
 
   Map<String, dynamic> toMap() => {
-        'produtoId': produtoId,
-        'produtoNome': produtoNome,
-        'direcao': direcao,
-        'quantidade': quantidade,
-        'estoqueAntes': estoqueAntes,
-        'estoqueDepois': estoqueDepois,
-      };
+    'produtoId': produtoId,
+    'produtoNome': produtoNome,
+    'direcao': direcao,
+    'quantidade': quantidade,
+    'estoqueAntes': estoqueAntes,
+    'estoqueDepois': estoqueDepois,
+  };
 }
 
 /// Execução de uma receita (histórico).

@@ -16,6 +16,7 @@ import '../../widgets/seletor.dart';
 import '../estoque/estoque_widgets.dart';
 import '../estoque/nota_entrada_form_page.dart';
 import '../shell/app_shell.dart';
+import 'importar_produtos_page.dart';
 import 'produto_form_page.dart';
 
 /// Produtos e estoque. [filtroInicial]: null (todos), 'baixo', 'zerados' ou
@@ -171,6 +172,14 @@ class _ProdutosPageState extends State<ProdutosPage> {
           icon: const Icon(Icons.add),
           label: const Text('Nota de entrada'),
         ),
+      OutlinedButton.icon(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ImportarProdutosPage()),
+        ),
+        icon: const Icon(Icons.upload_file),
+        label: const Text('Importar planilha'),
+      ),
       if (desktop)
         FilledButton.icon(
           onPressed: _abrirForm,

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
 import '../data/banco.dart';
 
 /// Ícone na AppBar que mostra se há dados aguardando sincronização.
@@ -26,14 +27,14 @@ class _SyncStatusIconState extends State<SyncStatusIcon> {
   void initState() {
     super.initState();
     for (final nome in _colecoes) {
-      _subs.add(Banco.col(nome)
-          .snapshots(includeMetadataChanges: true)
-          .listen((s) {
-        setState(() {
-          _pendentes[nome] = s.metadata.hasPendingWrites;
-          _cache[nome] = s.metadata.isFromCache;
-        });
-      }));
+      _subs.add(
+        Banco.col(nome).snapshots(includeMetadataChanges: true).listen((s) {
+          setState(() {
+            _pendentes[nome] = s.metadata.hasPendingWrites;
+            _cache[nome] = s.metadata.isFromCache;
+          });
+        }),
+      );
     }
   }
 
@@ -52,10 +53,10 @@ class _SyncStatusIconState extends State<SyncStatusIcon> {
 
     final (icone, texto, cor) = switch ((offline, pendente)) {
       (true, true) => (
-          Icons.cloud_off,
-          'Sem conexão. Há dados aguardando envio.',
-          Colors.orange
-        ),
+        Icons.cloud_off,
+        'Sem conexão. Há dados aguardando envio.',
+        Colors.orange,
+      ),
       (true, false) => (Icons.cloud_off, 'Sem conexão', Colors.grey),
       (false, true) => (Icons.cloud_upload, 'Enviando dados...', Colors.blue),
       (false, false) => (Icons.cloud_done, 'Tudo sincronizado', Colors.green),
@@ -64,8 +65,9 @@ class _SyncStatusIconState extends State<SyncStatusIcon> {
     return IconButton(
       tooltip: texto,
       icon: Icon(icone, color: cor),
-      onPressed: () => ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(texto))),
+      onPressed: () =>
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(texto))),
     );
   }
 }

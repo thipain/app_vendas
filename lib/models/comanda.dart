@@ -69,15 +69,17 @@ class Comanda {
       final m = Map<String, dynamic>.from(v as Map);
       final qtd = (m['quantidade'] as num?)?.toInt() ?? 0;
       if (qtd <= 0) return;
-      itens.add(ItemComanda(
-        produtoId: id as String,
-        nome: m['nome'] as String? ?? '',
-        codigo: m['codigo'] as String? ?? '',
-        quantidade: qtd,
-        precoUnitario: (m['precoUnitario'] as num?)?.toDouble() ?? 0,
-        adicionadoEm:
-            (m['adicionadoEm'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      ));
+      itens.add(
+        ItemComanda(
+          produtoId: id as String,
+          nome: m['nome'] as String? ?? '',
+          codigo: m['codigo'] as String? ?? '',
+          quantidade: qtd,
+          precoUnitario: (m['precoUnitario'] as num?)?.toDouble() ?? 0,
+          adicionadoEm:
+              (m['adicionadoEm'] as Timestamp?)?.toDate() ?? DateTime.now(),
+        ),
+      );
     });
     itens.sort((a, b) => a.adicionadoEm.compareTo(b.adicionadoEm));
     return Comanda(

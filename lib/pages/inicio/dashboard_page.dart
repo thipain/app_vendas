@@ -182,10 +182,7 @@ class _Reposicao extends StatelessWidget {
                 children: [
                   for (final p in lista)
                     ListTile(
-                      leading: FotoProduto(
-                        nome: p.nome,
-                        tamanho: 40,
-                      ),
+                      leading: FotoProduto(nome: p.nome, tamanho: 40),
                       title: Text(p.nome),
                       subtitle: Text(
                         '${p.codigo.isEmpty ? 'Sem SKU' : p.codigo} · mínimo ${p.estoqueMinimo}',

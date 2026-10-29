@@ -45,8 +45,13 @@ class UsuarioRepository {
     'lojaNome': lojaNome,
   };
 
-  /// Devolve o uid da conta com este e-mail, criando a conta se ainda não
-  /// existir. Precisa de internet.
+  /// Devolve o uid da conta com este e-mail para vincular à loja [lojaId],
+  /// criando a conta se ainda não existir. Precisa de internet.
+  ///
+  /// Um e-mail só pode estar em uma loja ativa por vez: se a conta já está
+  /// vinculada a outra loja que ainda existe, o cadastro é recusado. Contas de
+  /// lojas excluídas ficam livres e são reaproveitadas (com a senha antiga:
+  /// por isso [nova] = false avisa a tela para oferecer o link de nova senha).
   ///
   /// A conta é criada numa segunda instância do Firebase para não deslogar
   /// quem está cadastrando (criar uma conta pelo SDK faz login nela).
@@ -54,13 +59,28 @@ class UsuarioRepository {
     required String nome,
     required String email,
     required String senha,
+    required String lojaId,
+    required String lojaNome,
   }) async {
     final chave = email.trim().toLowerCase();
-    final existente = await Banco.contas
-        .doc(chave)
-        .get(const GetOptions(source: Source.server));
-    final uidExistente = existente.data()?['uid'] as String?;
-    if (uidExistente != null) return (uid: uidExistente, nova: false);
+    final ref = Banco.contas.doc(chave);
+    final existente = await ref.get(const GetOptions(source: Source.server));
+    final dados = existente.data();
+    final uidExistente = dados?['uid'] as String?;
+    if (uidExistente != null) {
+      final outra = dados!['lojaId'] as String?;
+      if (outra != null && outra != lojaId && await _lojaExiste(outra)) {
+        throw RegraException(
+          'Este e-mail já está em uso na loja '
+          '${dados['lojaNome'] ?? 'de outro cliente'}. Um e-mail só pode '
+          'estar em uma loja ativa por vez: use outro e-mail.',
+        );
+      }
+      if (outra != lojaId) {
+        await ref.update({'lojaId': lojaId, 'lojaNome': lojaNome});
+      }
+      return (uid: uidExistente, nova: false);
+    }
 
     final app = await Firebase.initializeApp(
       name: 'cadastro-${DateTime.now().microsecondsSinceEpoch}',
@@ -70,15 +90,39 @@ class UsuarioRepository {
       final cred = await FirebaseAuth.instanceFor(app: app)
           .createUserWithEmailAndPassword(email: chave, password: senha);
       final uid = cred.user!.uid;
-      await Banco.contas.doc(chave).set({
+      await ref.set({
         'uid': uid,
         'nome': nome,
+        'lojaId': lojaId,
+        'lojaNome': lojaNome,
         'criadoEm': FieldValue.serverTimestamp(),
       });
       return (uid: uid, nova: true);
     } finally {
       await app.delete();
     }
+  }
+
+  /// A loja ainda existe? Sem permissão para ler (loja de outro cliente),
+  /// considera que existe.
+  static Future<bool> _lojaExiste(String lojaId) async {
+    try {
+      final d = await Banco.lojas
+          .doc(lojaId)
+          .get(const GetOptions(source: Source.server));
+      return d.exists;
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') return true;
+      rethrow;
+    }
+  }
+
+  /// Envia o e-mail (em português) com o link para criar uma nova senha.
+  static Future<void> enviarLinkNovaSenha(String email) async {
+    await FirebaseAuth.instance.setLanguageCode('pt');
+    await FirebaseAuth.instance.sendPasswordResetEmail(
+      email: email.trim().toLowerCase(),
+    );
   }
 
   /// Mensagem quando o plano da loja não comporta mais um usuário ativo
@@ -99,7 +143,9 @@ class UsuarioRepository {
 
   /// Cadastra um funcionário na loja em uso. Se a pessoa já tem conta (em
   /// outra loja), ela é apenas vinculada e continua com a mesma senha.
-  Future<void> criar({
+  /// Retorna true quando a pessoa já tinha conta (a senha informada é
+  /// ignorada e ela continua com a senha antiga).
+  Future<bool> criar({
     required String nome,
     required String email,
     required String senha,
@@ -113,6 +159,8 @@ class UsuarioRepository {
       nome: nome,
       email: email,
       senha: senha,
+      lojaId: Banco.lojaId,
+      lojaNome: lojaNome,
     );
     final ref = _col.doc(conta.uid);
     final atual = await ref.get(const GetOptions(source: Source.server));
@@ -140,6 +188,7 @@ class UsuarioRepository {
       depois: {...usuario.toMap(), 'contaExistente': !conta.nova},
     );
     await batch.commit();
+    return !conta.nova;
   }
 
   /// Altera nome, papel, status ou permissões, protegendo o último admin.

@@ -33,11 +33,11 @@ class Cliente {
   }
 
   Map<String, dynamic> toMap() => {
-        'nome': nome,
-        'nomeBusca': nome.toLowerCase(),
-        'documento': documento,
-        'telefone': telefone,
-        'email': email,
-        'endereco': endereco,
-      };
+    'nome': nome,
+    'nomeBusca': nome.toLowerCase(),
+    'documento': documento,
+    'telefone': telefone,
+    'email': email,
+    'endereco': endereco,
+  };
 }

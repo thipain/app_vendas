@@ -910,11 +910,7 @@ class _ProdutoCard extends StatelessWidget {
                     height: 104,
                     color: t.colorScheme.surfaceContainerHighest,
                     alignment: Alignment.center,
-                    child: FotoProduto(
-                      nome: p.nome,
-                      tamanho: 92,
-                      raio: 10,
-                    ),
+                    child: FotoProduto(nome: p.nome, tamanho: 92, raio: 10),
                   ),
                   if (noCarrinho > 0)
                     Positioned(

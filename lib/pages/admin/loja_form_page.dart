@@ -6,6 +6,7 @@ import '../../models/loja.dart';
 import '../../widgets/largura_maxima.dart';
 import '../inicio/comum.dart';
 import 'admin_comum.dart';
+import '../../widgets/conta_existente.dart';
 
 /// Cadastro de nova loja (com o administrador dela) ou edição do cadastro e
 /// da cobrança de uma loja existente. Retorna true quando salvou.
@@ -125,7 +126,7 @@ class _LojaFormPageState extends State<LojaFormPage> {
         final teste = _teste;
         // Com teste grátis, criarLoja calcula o vencimento (hoje + dias).
         // Sem teste, o vencimento escolhido vai no cadastro e é mantido.
-        await _repo.criarLoja(
+        final r = await _repo.criarLoja(
           nomeLoja: dados.nome,
           nomeAdmin: _adminNome.text.trim(),
           emailAdmin: _adminEmail.text.trim(),
@@ -135,6 +136,12 @@ class _LojaFormPageState extends State<LojaFormPage> {
               : dados.copyWith(emTeste: false),
           diasTeste: teste,
         );
+        if (r.contaExistente && mounted) {
+          await avisarContaExistente(
+            context,
+            _adminEmail.text.trim().toLowerCase(),
+          );
+        }
       } else {
         await _repo.salvarCadastro(_antes!, dados);
       }

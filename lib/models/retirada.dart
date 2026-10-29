@@ -19,20 +19,20 @@ class ItemRetirada {
   double get totalCusto => quantidade * custoUnitario;
 
   factory ItemRetirada.fromMap(Map<String, dynamic> m) => ItemRetirada(
-        produtoId: m['produtoId'] as String? ?? '',
-        produtoNome: m['produtoNome'] as String? ?? '',
-        quantidade: (m['quantidade'] as num?)?.toInt() ?? 0,
-        custoUnitario: (m['custoUnitario'] as num?)?.toDouble() ?? 0,
-        precoUnitario: (m['precoUnitario'] as num?)?.toDouble() ?? 0,
-      );
+    produtoId: m['produtoId'] as String? ?? '',
+    produtoNome: m['produtoNome'] as String? ?? '',
+    quantidade: (m['quantidade'] as num?)?.toInt() ?? 0,
+    custoUnitario: (m['custoUnitario'] as num?)?.toDouble() ?? 0,
+    precoUnitario: (m['precoUnitario'] as num?)?.toDouble() ?? 0,
+  );
 
   Map<String, dynamic> toMap() => {
-        'produtoId': produtoId,
-        'produtoNome': produtoNome,
-        'quantidade': quantidade,
-        'custoUnitario': custoUnitario,
-        'precoUnitario': precoUnitario,
-      };
+    'produtoId': produtoId,
+    'produtoNome': produtoNome,
+    'quantidade': quantidade,
+    'custoUnitario': custoUnitario,
+    'precoUnitario': precoUnitario,
+  };
 }
 
 /// Consumo de produtos por funcionário: baixa o estoque sem passar pelo caixa.

@@ -49,26 +49,25 @@ class Usuario {
   }
 
   Map<String, dynamic> toMap() => {
-        'nome': nome,
-        'nomeBusca': nome.toLowerCase(),
-        'email': email,
-        'papel': papel,
-        'ativo': ativo,
-        'permissoes': permissoes.toList()..sort(),
-      };
+    'nome': nome,
+    'nomeBusca': nome.toLowerCase(),
+    'email': email,
+    'papel': papel,
+    'ativo': ativo,
+    'permissoes': permissoes.toList()..sort(),
+  };
 
   Usuario copyWith({
     String? nome,
     String? papel,
     bool? ativo,
     Set<String>? permissoes,
-  }) =>
-      Usuario(
-        id: id,
-        nome: nome ?? this.nome,
-        email: email,
-        papel: papel ?? this.papel,
-        ativo: ativo ?? this.ativo,
-        permissoes: permissoes ?? this.permissoes,
-      );
+  }) => Usuario(
+    id: id,
+    nome: nome ?? this.nome,
+    email: email,
+    papel: papel ?? this.papel,
+    ativo: ativo ?? this.ativo,
+    permissoes: permissoes ?? this.permissoes,
+  );
 }

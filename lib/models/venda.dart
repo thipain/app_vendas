@@ -39,29 +39,29 @@ class ItemVenda {
   double get custoTotal => custoUnitario * quantidade;
 
   ItemVenda copyWith({int? quantidade, double? precoUnitario}) => ItemVenda(
-        produtoId: produtoId,
-        nome: nome,
-        quantidade: quantidade ?? this.quantidade,
-        precoUnitario: precoUnitario ?? this.precoUnitario,
-        custoUnitario: custoUnitario,
-      );
+    produtoId: produtoId,
+    nome: nome,
+    quantidade: quantidade ?? this.quantidade,
+    precoUnitario: precoUnitario ?? this.precoUnitario,
+    custoUnitario: custoUnitario,
+  );
 
   factory ItemVenda.fromMap(Map<String, dynamic> m) => ItemVenda(
-        produtoId: m['produtoId'] as String? ?? '',
-        nome: m['nome'] as String? ?? '',
-        quantidade: (m['quantidade'] as num?)?.toInt() ?? 0,
-        precoUnitario: (m['precoUnitario'] as num?)?.toDouble() ?? 0,
-        custoUnitario: (m['custoUnitario'] as num?)?.toDouble() ?? 0,
-      );
+    produtoId: m['produtoId'] as String? ?? '',
+    nome: m['nome'] as String? ?? '',
+    quantidade: (m['quantidade'] as num?)?.toInt() ?? 0,
+    precoUnitario: (m['precoUnitario'] as num?)?.toDouble() ?? 0,
+    custoUnitario: (m['custoUnitario'] as num?)?.toDouble() ?? 0,
+  );
 
   Map<String, dynamic> toMap() => {
-        'produtoId': produtoId,
-        'nome': nome,
-        'quantidade': quantidade,
-        'precoUnitario': precoUnitario,
-        'custoUnitario': custoUnitario,
-        'total': subtotal,
-      };
+    'produtoId': produtoId,
+    'nome': nome,
+    'quantidade': quantidade,
+    'precoUnitario': precoUnitario,
+    'custoUnitario': custoUnitario,
+    'total': subtotal,
+  };
 }
 
 class Pagamento {
@@ -81,24 +81,25 @@ class Pagamento {
     this.troco = 0,
   }) : recebido = recebido ?? valor;
 
-  String get descricao =>
-      forma == FormaPagamento.credito && parcelas > 1 ? '$forma ${parcelas}x' : forma;
+  String get descricao => forma == FormaPagamento.credito && parcelas > 1
+      ? '$forma ${parcelas}x'
+      : forma;
 
   factory Pagamento.fromMap(Map<String, dynamic> m) => Pagamento(
-        forma: m['forma'] as String? ?? '',
-        valor: (m['valor'] as num?)?.toDouble() ?? 0,
-        parcelas: (m['parcelas'] as num?)?.toInt() ?? 1,
-        recebido: (m['recebido'] as num?)?.toDouble(),
-        troco: (m['troco'] as num?)?.toDouble() ?? 0,
-      );
+    forma: m['forma'] as String? ?? '',
+    valor: (m['valor'] as num?)?.toDouble() ?? 0,
+    parcelas: (m['parcelas'] as num?)?.toInt() ?? 1,
+    recebido: (m['recebido'] as num?)?.toDouble(),
+    troco: (m['troco'] as num?)?.toDouble() ?? 0,
+  );
 
   Map<String, dynamic> toMap() => {
-        'forma': forma,
-        'valor': valor,
-        'parcelas': parcelas,
-        'recebido': recebido,
-        'troco': troco,
-      };
+    'forma': forma,
+    'valor': valor,
+    'parcelas': parcelas,
+    'recebido': recebido,
+    'troco': troco,
+  };
 }
 
 /// Valida e normaliza as formas de pagamento, como no sistema original:
@@ -124,20 +125,24 @@ List<Pagamento> processarPagamentos(List<Pagamento> linhas, int totalCentavos) {
     final recebido = dinheiro ? centavos(l.recebido) : valor;
     if (dinheiro && recebido < valor) {
       throw const RegraException(
-          'O valor recebido em dinheiro é menor que a parte informada.');
+        'O valor recebido em dinheiro é menor que a parte informada.',
+      );
     }
-    resultado.add(Pagamento(
-      forma: l.forma,
-      valor: deCentavos(valor),
-      parcelas: parcelas,
-      recebido: deCentavos(recebido),
-      troco: dinheiro ? deCentavos(recebido - valor) : 0,
-    ));
+    resultado.add(
+      Pagamento(
+        forma: l.forma,
+        valor: deCentavos(valor),
+        parcelas: parcelas,
+        recebido: deCentavos(recebido),
+        troco: dinheiro ? deCentavos(recebido - valor) : 0,
+      ),
+    );
     soma += valor;
   }
   if (resultado.isEmpty || soma != totalCentavos) {
     throw const RegraException(
-        'A soma dos pagamentos deve ser igual ao total da venda.');
+      'A soma dos pagamentos deve ser igual ao total da venda.',
+    );
   }
   return resultado;
 }
@@ -222,7 +227,9 @@ class Venda {
     final d = pagamentos
         .where((p) => p.forma == FormaPagamento.dinheiro)
         .fold<double>(0, (s, p) => s + p.valor);
-    if (d == 0 && pagamentos.isEmpty && formaPagamento == FormaPagamento.dinheiro) {
+    if (d == 0 &&
+        pagamentos.isEmpty &&
+        formaPagamento == FormaPagamento.dinheiro) {
       return total;
     }
     return d;
@@ -257,9 +264,8 @@ class Venda {
       comandaId: d['comandaId'] as String?,
       comandaNome: d['comandaNome'] as String?,
       vendedorId: vendedor?['uid'] as String? ?? '',
-      vendedorNome: vendedor?['nome'] as String? ??
-          d['vendedorEmail'] as String? ??
-          '',
+      vendedorNome:
+          vendedor?['nome'] as String? ?? d['vendedorEmail'] as String? ?? '',
       data: (d['data'] as Timestamp?)?.toDate() ?? DateTime.now(),
       canceladaEm: (cancelamento?['em'] as Timestamp?)?.toDate(),
       canceladaPorNome: (cancelamento?['por'] as Map?)?['nome'] as String?,
@@ -270,22 +276,22 @@ class Venda {
   }
 
   Map<String, dynamic> toMap() => {
-        'clienteId': clienteId,
-        'clienteNome': clienteNome,
-        'itens': itens.map((i) => i.toMap()).toList(),
-        'pagamentos': pagamentos.map((p) => p.toMap()).toList(),
-        'descontoPercentual': descontoPercentual,
-        'descontoInformado': descontoInformado,
-        'desconto': desconto,
-        'subtotal': subtotal,
-        'total': total,
-        'custoTotal': custoTotal,
-        'formaPagamento': formaPagamento,
-        'status': status,
-        'caixaId': caixaId,
-        'comandaId': comandaId,
-        'comandaNome': comandaNome,
-        'vendedor': {'uid': vendedorId, 'nome': vendedorNome},
-        'data': Timestamp.fromDate(data),
-      };
+    'clienteId': clienteId,
+    'clienteNome': clienteNome,
+    'itens': itens.map((i) => i.toMap()).toList(),
+    'pagamentos': pagamentos.map((p) => p.toMap()).toList(),
+    'descontoPercentual': descontoPercentual,
+    'descontoInformado': descontoInformado,
+    'desconto': desconto,
+    'subtotal': subtotal,
+    'total': total,
+    'custoTotal': custoTotal,
+    'formaPagamento': formaPagamento,
+    'status': status,
+    'caixaId': caixaId,
+    'comandaId': comandaId,
+    'comandaNome': comandaNome,
+    'vendedor': {'uid': vendedorId, 'nome': vendedorNome},
+    'data': Timestamp.fromDate(data),
+  };
 }

@@ -19,16 +19,21 @@ void mostrarErro(BuildContext context, Object erro) {
   };
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: Theme.of(context).colorScheme.error,
-    ));
+    ..showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
 }
 
 /// Executa uma operação de repositório e mostra o erro, se houver.
 /// Retorna true quando deu certo.
-bool executar(BuildContext context, void Function() operacao,
-    {String? sucesso}) {
+bool executar(
+  BuildContext context,
+  void Function() operacao, {
+  String? sucesso,
+}) {
   try {
     operacao();
     if (sucesso != null) avisar(context, sucesso);
@@ -73,7 +78,9 @@ Future<String?> pedirTexto(
       ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(ctx), child: const Text('Voltar')),
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Voltar'),
+        ),
         FilledButton(
           onPressed: () {
             if (form.currentState!.validate()) {

@@ -48,8 +48,7 @@ Future<Produto?> selecionarProduto(
   bool incluirInativos = false,
   bool exigirEstoque = false,
 }) {
-  final lista =
-      incluirInativos ? Dados.produtos.value : Dados.produtosAtivos;
+  final lista = incluirInativos ? Dados.produtos.value : Dados.produtosAtivos;
   return selecionar<Produto>(
     context,
     titulo: titulo,
@@ -60,7 +59,8 @@ Future<Produto?> selecionarProduto(
       leading: FotoProduto(nome: p.nome, tamanho: 40),
       title: Text(p.ativo ? p.nome : '${p.nome} — desativado'),
       subtitle: Text(
-          '${p.codigo.isEmpty ? '' : '${p.codigo} · '}saldo ${p.estoque} ${p.unidade}'),
+        '${p.codigo.isEmpty ? '' : '${p.codigo} · '}saldo ${p.estoque} ${p.unidade}',
+      ),
       trailing: Text(formatarMoeda(p.preco)),
     ),
   );
@@ -120,8 +120,9 @@ class _SeletorState<T> extends State<_Seletor<T>> {
                       return Opacity(
                         opacity: ok ? 1 : 0.45,
                         child: InkWell(
-                          onTap:
-                              ok ? () => Navigator.pop(context, itens[i]) : null,
+                          onTap: ok
+                              ? () => Navigator.pop(context, itens[i])
+                              : null,
                           child: widget.itemBuilder(itens[i]),
                         ),
                       );

@@ -8,6 +8,7 @@ import '../../data/dados.dart';
 import '../../data/usuario_repository.dart';
 import '../../models/usuario.dart';
 import '../../widgets/mensagens.dart';
+import '../../widgets/conta_existente.dart';
 
 final _regexEmail = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
@@ -63,12 +64,16 @@ Future<void> novoFuncionario(BuildContext context) async {
     );
     return;
   }
-  final ok = await showDialog<bool>(
+  // O diálogo devolve true, ou o e-mail quando a pessoa já tinha conta.
+  final r = await showDialog<Object>(
     context: context,
     barrierDismissible: false,
     builder: (_) => const _NovoFuncionarioDialog(),
   );
-  if (ok == true && context.mounted) {
+  if (!context.mounted) return;
+  if (r is String) {
+    await avisarContaExistente(context, r);
+  } else if (r == true) {
     avisar(context, 'Funcionário cadastrado com os acessos selecionados.');
   }
 }
@@ -189,7 +194,7 @@ class _NovoFuncionarioDialogState extends State<_NovoFuncionarioDialog> {
       _erro = null;
     });
     try {
-      await UsuarioRepository().criar(
+      final existente = await UsuarioRepository().criar(
         nome: nome,
         email: email,
         senha: senha,
@@ -198,7 +203,7 @@ class _NovoFuncionarioDialogState extends State<_NovoFuncionarioDialog> {
         lojaNome: Sessao.instancia.lojaNome,
         equipe: Dados.equipe.value,
       );
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) Navigator.pop<Object>(context, existente ? email : true);
     } catch (e) {
       if (mounted) {
         setState(() {

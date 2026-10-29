@@ -25,7 +25,9 @@ class RegistroAuditoria {
     required this.data,
   });
 
-  factory RegistroAuditoria.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+  factory RegistroAuditoria.fromDoc(
+    DocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
     final d = doc.data() ?? const {};
     return RegistroAuditoria(
       id: doc.id,

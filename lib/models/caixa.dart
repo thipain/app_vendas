@@ -98,10 +98,10 @@ class MovimentoCaixa {
 
   /// Efeito no saldo da gaveta (o fechamento não altera o saldo).
   double get efeito => switch (tipo) {
-        abertura || venda || suprimento => valor,
-        sangria || estorno => -valor,
-        _ => 0,
-      };
+    abertura || venda || suprimento => valor,
+    sangria || estorno => -valor,
+    _ => 0,
+  };
 
   factory MovimentoCaixa.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final d = doc.data() ?? const {};

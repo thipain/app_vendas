@@ -58,15 +58,15 @@ class ConfigLoja {
   }
 
   Map<String, dynamic> toMap() => {
-        'nomeLoja': nomeLoja,
-        'nomeSistema': nomeSistema,
-        'telefone': telefone,
-        'documento': documento,
-        'endereco': endereco,
-        'mensagemComprovante': mensagemComprovante,
-        'statusLoja': statusLoja,
-        'corPrimaria': corParaHex(corPrimaria),
-        'corDestaque': corParaHex(corDestaque),
-        'logo': logo,
-      };
+    'nomeLoja': nomeLoja,
+    'nomeSistema': nomeSistema,
+    'telefone': telefone,
+    'documento': documento,
+    'endereco': endereco,
+    'mensagemComprovante': mensagemComprovante,
+    'statusLoja': statusLoja,
+    'corPrimaria': corParaHex(corPrimaria),
+    'corDestaque': corParaHex(corDestaque),
+    'logo': logo,
+  };
 }

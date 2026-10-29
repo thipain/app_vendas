@@ -25,6 +25,8 @@ Sistema completo de PDV para adega/loja, com todas as funções do AdegaPDV (ver
 - **Clientes**: cadastro de clientes
 
 **Produtos e estoque**
+- **Importar produtos por planilha** (colar do Excel ou abrir CSV; modelo em
+  [`exemplos/produtos_teste.csv`](exemplos/produtos_teste.csv))
 - Produtos com código, categoria, preço de venda e custo, unidade, estoque mínimo,
   ajuste de saldo com motivo obrigatório, desativação e restauração
 - **Notificações** de itens zerados e com estoque baixo (sino com contador)
@@ -81,8 +83,10 @@ só liberam os dados de uma loja para os membros ativos dela.
   mudar o relógio do aparelho não adianta. O servidor ainda aceita por 3 dias a sincronização
   de vendas feitas offline antes da trava. O dono também pode travar/liberar manualmente.
 - **Administrador da loja**: cadastra a própria equipe em **Equipe e acessos**.
-- Quem trabalha em mais de uma loja usa o mesmo e-mail e senha e escolhe a loja ao entrar
-  (**Trocar de loja** no menu da conta). O app lembra a última loja aberta no aparelho.
+- **Um e-mail por loja ativa**: o mesmo e-mail não pode estar em duas lojas ativas. Ao
+  excluir uma loja, os e-mails da equipe ficam livres; ao reaproveitar um e-mail, a conta
+  antiga (e a senha antiga) é mantida, e o app oferece enviar o link de nova senha.
+
 - **Migração**: os dados da versão anterior (antes das lojas) aparecem no Painel administrativo (Lojas)
   com o botão **Migrar**, que os copia para uma loja nova. Os originais ficam intactos.
 

@@ -36,9 +36,15 @@ class _LoginPageState extends State<LoginPage> {
     } on FirebaseAuthException catch (e) {
       setState(
         () => _erro = switch (e.code) {
+          // No Windows, senha errada chega como 'unknown-error'.
           'invalid-credential' ||
           'wrong-password' ||
-          'user-not-found' => 'E-mail ou senha incorretos',
+          'user-not-found' ||
+          'unknown-error' =>
+            'E-mail ou senha incorretos. Se esqueceu a senha, toque em '
+                '"Esqueci minha senha".',
+          'invalid-email' => 'E-mail inválido.',
+          'user-disabled' => 'Esta conta foi desativada.',
           'network-request-failed' =>
             'Sem internet. O primeiro login precisa de conexão.',
           'too-many-requests' => 'Muitas tentativas. Aguarde um pouco.',
