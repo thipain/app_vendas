@@ -516,6 +516,23 @@
       color: var(--lima);
     }
 
+    .offline.claro {
+      background: var(--fundo-2);
+      color: var(--texto);
+    }
+
+    .offline.claro .sub {
+      color: var(--suave);
+    }
+
+    .offline.claro li {
+      background: #fff;
+    }
+
+    .offline.claro li b {
+      color: var(--verde);
+    }
+
     @media (max-width: 900px) {
       .offline {
         grid-template-columns: 1fr;
@@ -745,6 +762,7 @@
       <nav class="menu">
         <a href="#recursos">Recursos</a>
         <a href="#offline">Sem internet</a>
+        <a href="#planilha">Planilha</a>
         <a href="#planos">Planos</a>
         <a href="#duvidas">Dúvidas</a>
         <a class="btn btn-principal" data-whats="Olá! Quero testar o sistema grátis por 7 dias.">Testar grátis</a>
@@ -842,23 +860,32 @@
         <div class="cartao">
           <div class="icone">🛒</div>
           <h3>Vendas rápidas</h3>
-          <p>Catálogo leve e rápido, busca por nome ou código e leitor de código de barras. Pix, dinheiro com troco,
-            débito, crédito em até 24x e pagamento dividido.</p>
+          <p>Catálogo leve e rápido, busca por nome ou código e leitor de código de barras. Desconto em R$ ou %, Pix,
+            dinheiro com troco, débito, crédito em até 24x, VR, pagamento dividido em duas formas e cliente na venda.</p>
         </div>
         <div class="cartao">
           <div class="icone">🧾</div>
           <h3>Comandas</h3>
-          <p>Abra comandas por mesa ou cliente, lance itens a qualquer momento e feche com desconto e pagamento.</p>
+          <p>Abra comandas por mesa ou cliente, lance, altere ou remova itens a qualquer momento e feche com desconto e
+            pagamento. O estoque sai na hora.</p>
         </div>
         <div class="cartao">
           <div class="icone">💰</div>
           <h3>Controle de caixa</h3>
-          <p>Abertura, suprimento, sangria e fechamento com conferência da diferença no fim do turno.</p>
+          <p>Abertura, suprimento, sangria e fechamento com conferência da diferença no fim do turno, com histórico dos
+            últimos fechamentos.</p>
         </div>
         <div class="cartao">
           <div class="icone">📦</div>
           <h3>Estoque de verdade</h3>
-          <p>Baixa automática, alerta de estoque mínimo, notas de entrada e histórico de cada movimentação.</p>
+          <p>Baixa automática, aviso de itens zerados e com estoque baixo, notas de entrada com fornecedor e custo, e
+            histórico de cada movimentação.</p>
+        </div>
+        <div class="cartao">
+          <div class="icone">📥</div>
+          <h3>Produtos por planilha</h3>
+          <p>Já tem a lista no Excel? Copie e cole no app (ou abra um CSV) e cadastre centenas de produtos de uma vez,
+            com preço, custo e estoque.</p>
         </div>
         <div class="cartao">
           <div class="icone">🔁</div>
@@ -868,23 +895,59 @@
         <div class="cartao">
           <div class="icone">📊</div>
           <h3>Relatórios de lucro</h3>
-          <p>Faturamento, custo, lucro, margem, vendas por forma de pagamento e os produtos que mais dão lucro.</p>
+          <p>Faturamento, custo, lucro, margem, descontos, vendas por forma de pagamento e os produtos que mais dão
+            lucro, com exportação em PDF.</p>
+        </div>
+        <div class="cartao">
+          <div class="icone">🧮</div>
+          <h3>Histórico de vendas</h3>
+          <p>Filtre por período, veja os detalhes, reimprima o comprovante ou estorne a venda: o estoque e o caixa
+            voltam sozinhos.</p>
         </div>
         <div class="cartao">
           <div class="icone">👥</div>
           <h3>Equipe com permissões</h3>
-          <p>Cada funcionário com o seu acesso. Retiradas da equipe e ponto com horário e localização.</p>
+          <p>Cada funcionário só acessa o que você liberar. Consumo da equipe com resumo do mês e ponto com horário e
+            localização.</p>
         </div>
         <div class="cartao">
           <div class="icone">🖨️</div>
           <h3>Comprovante</h3>
-          <p>Comprovante não fiscal para impressora térmica de 80 mm ou enviado em PDF pelo WhatsApp.</p>
+          <p>Comprovante não fiscal para impressora térmica de 80 mm ou enviado em PDF pelo WhatsApp, com a logo e os
+            dados da sua loja.</p>
+        </div>
+        <div class="cartao">
+          <div class="icone">🎨</div>
+          <h3>Com a cara da sua loja</h3>
+          <p>Nome, logo, cores e contato da adega no app e no comprovante.</p>
         </div>
         <div class="cartao">
           <div class="icone">🔒</div>
           <h3>Seguro e auditado</h3>
           <p>Dados na nuvem do Google, cópia no aparelho e registro de quem fez cada operação.</p>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="planilha">
+    <div class="container">
+      <div class="offline claro">
+        <div>
+          <h2>Seus produtos cadastrados em minutos</h2>
+          <p class="sub">Baixe a planilha modelo, preencha com os seus produtos e envie para a
+            gente ou cole direto no app. Não precisa digitar um por um.</p>
+          <div class="acoes">
+            <a class="btn btn-escuro" href="modelo_importacao_produtos.xlsx" download>Baixar planilha modelo</a>
+          </div>
+        </div>
+        <ul>
+          <li><b>Obrigatórios:</b> Nome, Código e Preço.</li>
+          <li><b>Opcionais:</b> Categoria, Custo, Estoque, Mínimo e
+            Unidade.</li>
+          <li><b>Dica:</b> não mude os nomes das colunas. Estoque e
+            Mínimo são números inteiros.</li>
+        </ul>
       </div>
     </div>
   </section>
@@ -901,6 +964,8 @@
           <li><b>Vende offline:</b> registra vendas, comandas e baixa de estoque sem internet.</li>
           <li><b>Sincroniza sozinho:</b> ao reconectar, tudo vai para a nuvem e aparece nos outros aparelhos.</li>
           <li><b>Celular e PC juntos:</b> a venda feita no celular aparece no computador do balcão.</li>
+          <li><b>Você vê o que falta enviar:</b> a nuvem na barra mostra a sincronização e cada item pendente fica
+            marcado.</li>
           <li><b>Sempre atualizado:</b> versões novas chegam automaticamente.</li>
         </ul>
       </div>
@@ -932,7 +997,8 @@
         <div class="cartao">
           <div class="passo-num">2</div>
           <h3>Implantação assistida</h3>
-          <p>Ajudamos a cadastrar produtos, equipe e a configurar a loja com a sua logo.</p>
+          <p>Preencha a planilha modelo com seus produtos e ajudamos a importar, cadastrar a equipe e configurar a loja
+            com a sua logo.</p>
         </div>
         <div class="cartao">
           <div class="passo-num">3</div>
@@ -952,12 +1018,13 @@
       <div class="grade planos lista-titulo">
         <div class="cartao plano">
           <h3>Essencial</h3>
-          <div class="preco"><span data-preco="essencial">R$ 79</span><small>/mês</small></div>
-          <p class="obs" style="margin:0">Para começar a organizar a adega.</p>
+          <div class="preco"><span data-preco="essencial">R$ 69</span><small>/mês</small></div>
+          <p class="obs" style="margin:0">Para adegas com equipe pequena.</p>
           <ul>
-            <li>Vendas, caixa e comandas</li>
-            <li>Estoque com alerta de mínimo</li>
-            <li>Até 3 usuários</li>
+            <li>Todas as funções do app</li>
+            <li>Até 3 usuários ativos</li>
+            <li>Vendas, caixa, comandas e estoque</li>
+            <li>Relatórios de lucro e margem</li>
             <li>Celular e computador</li>
             <li>Funciona sem internet</li>
           </ul>
@@ -966,14 +1033,13 @@
         <div class="cartao plano destaque">
           <h3>Completo</h3>
           <div class="preco"><span data-preco="completo">R$ 119</span><small>/mês</small></div>
-          <p class="obs" style="margin:0">Controle total da operação e do lucro.</p>
+          <p class="obs" style="margin:0">Para adegas com equipe maior.</p>
           <ul>
             <li>Tudo do Essencial</li>
             <li>Usuários ilimitados com permissões</li>
-            <li>Relatórios de lucro e margem</li>
-            <li>Notas de entrada, montagem e desmanche</li>
-            <li>Ponto e retiradas da equipe</li>
-            <li>Auditoria de operações</li>
+            <li>Ideal para vários turnos e caixas</li>
+            <li>Ponto e consumo de toda a equipe</li>
+            <li>Auditoria de cada operação</li>
           </ul>
           <a class="btn btn-principal" style="background:var(--verde);color:var(--lima)"
             data-whats="Olá! Tenho interesse no plano Completo.">Quero o Completo</a>
@@ -1030,6 +1096,26 @@
           <summary>Meus dados ficam seguros?</summary>
           <p>Os dados ficam na nuvem do Google (Firebase), com cópia no aparelho. Cada loja só enxerga os próprios
             dados, e cada funcionário só acessa o que o dono liberar.</p>
+        </details>
+        <details>
+          <summary>Qual a diferença entre os planos?</summary>
+          <p>Os dois têm todas as funções do app. O Essencial permite até 3 usuários ativos e o Completo não tem limite
+            de usuários. Dá para mudar de plano a qualquer momento.</p>
+        </details>
+        <details>
+          <summary>Já tenho meus produtos numa planilha. Preciso digitar tudo de novo?</summary>
+          <p>Não. Baixe a <a href="#planilha">planilha modelo</a>, preencha (ou copie as colunas da sua) e cole no app,
+            ou abra o arquivo CSV. O app mostra as linhas com erro antes de cadastrar.</p>
+        </details>
+        <details>
+          <summary>E se eu esquecer a senha?</summary>
+          <p>Na tela de entrada, toque em "Esqueci minha senha" e receba no e-mail o link para criar uma nova. O
+            administrador da loja também pode redefinir a senha dos funcionários.</p>
+        </details>
+        <details>
+          <summary>Como recebo as atualizações?</summary>
+          <p>Automaticamente. Quando sai uma versão nova, o app avisa e se atualiza sozinho, no Android e no
+            Windows.</p>
         </details>
         <details>
           <summary>Funciona com impressora térmica?</summary>
