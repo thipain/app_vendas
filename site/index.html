@@ -48,6 +48,10 @@
       max-width: 100%;
     }
 
+    [hidden] {
+      display: none !important;
+    }
+
     a {
       color: inherit;
     }
@@ -1169,6 +1173,19 @@
     </div>
   </section>
 
+  <section id="baixar" class="fundo-claro" hidden>
+    <div class="container centro">
+      <h2>Baixe o app</h2>
+      <p class="sub">Instale no celular e no computador da loja. Os dados são os mesmos nos dois.</p>
+      <div class="acoes" style="justify-content:center">
+        <a class="btn btn-escuro" data-download="android" hidden>Baixar para Android</a>
+        <a class="btn btn-escuro" data-download="windows" hidden>Baixar para Windows</a>
+      </div>
+      <p class="obs">No Android, permita instalar apps desta fonte quando o celular pedir. No Windows, se aparecer "O
+        Windows protegeu o computador", clique em <b>Mais informações → Executar assim mesmo</b>.</p>
+    </div>
+  </section>
+
   <section>
     <div class="container">
       <div class="cta-final">
@@ -1206,6 +1223,9 @@
       // Link do vídeo de demonstração no YouTube (vazio = seção escondida)
       // Ex.: 'https://www.youtube.com/watch?v=XXXXXXXXXXX'
       video: '',
+      // Links de download do app (vazio = botão escondido). Pode colar o link de
+      // compartilhamento do Google Drive: ele vira download direto sozinho.
+      downloads: { android: '', windows: '' },
       implantacao: 'Implantação assistida opcional: cadastro dos produtos, configuração e treinamento da equipe.',
     };
     // ==========================================================
@@ -1222,6 +1242,19 @@
       e.href = 'https://wa.me/' + CONFIG.whatsapp + '?text=' + encodeURIComponent(e.dataset.whats);
       e.target = '_blank';
       e.rel = 'noopener';
+    });
+    // "drive.google.com/file/d/ID/view" ou "open?id=ID" → link de download direto
+    const linkDireto = url => {
+      const drive = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:.*&)?id=)([\w-]+)/);
+      return drive ? 'https://drive.google.com/uc?export=download&id=' + drive[1] : url;
+    };
+    Object.entries(CONFIG.downloads).forEach(([plataforma, url]) => {
+      if (!url) return;
+      document.querySelectorAll('[data-download="' + plataforma + '"]').forEach(e => {
+        e.href = linkDireto(url);
+        e.hidden = false;
+      });
+      document.getElementById('baixar').hidden = false;
     });
     const id = (CONFIG.video.match(/(?:v=|youtu\.be\/|shorts\/)([\w-]{11})/) || [])[1];
     if (id) {

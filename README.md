@@ -254,3 +254,13 @@ No PC, baixe `app_vendas-setup-X.Y.Z.exe` da página de Releases e execute. Não
 administrador (instala só para o usuário atual). Como o instalador não é assinado
 digitalmente, o Windows pode mostrar "O Windows protegeu o computador": clique em
 **Mais informações → Executar assim mesmo**.
+
+## Site de divulgação
+
+A página de apresentação fica em [`site/`](site/) e é publicada no Firebase Hosting em
+<https://fastvendas.web.app>. Nome, WhatsApp, preços, vídeo e links de download do app ficam
+no `CONFIG`, no fim de [`site/index.html`](site/index.html). Para publicar:
+
+```bash
+firebase deploy --only hosting
+```
