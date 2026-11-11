@@ -39,6 +39,10 @@ class _Resultado {
   final double liquido;
   final double custo;
   final double descontos;
+
+  /// Taxas de entrega do delivery: entram no faturamento, mas ficam fora do
+  /// lucro dos produtos (normalmente pagam o entregador).
+  final double taxas;
   final List<_Forma> formas;
   final List<_ProdutoLucro> produtos;
 
@@ -47,23 +51,26 @@ class _Resultado {
     this.liquido,
     this.custo,
     this.descontos,
+    this.taxas,
     this.formas,
     this.produtos,
   );
 
-  double get lucro => liquido - custo;
-  double get margem => liquido > 0 ? lucro / liquido * 100 : 0;
+  double get vendasProdutos => liquido - taxas;
+  double get lucro => vendasProdutos - custo;
+  double get margem => vendasProdutos > 0 ? lucro / vendasProdutos * 100 : 0;
   String get margemTexto =>
       '${margem.toStringAsFixed(1).replaceAll('.', ',')}%';
 
   factory _Resultado.de(List<Venda> todas) {
     final vendas = todas.where((v) => v.status == Venda.concluida).toList();
-    var liquido = 0.0, custo = 0.0, descontos = 0.0;
+    var liquido = 0.0, custo = 0.0, descontos = 0.0, taxas = 0.0;
     final formas = <String, _Forma>{};
     final produtos = <String, _ProdutoLucro>{};
     for (final v in vendas) {
       liquido += v.total;
       descontos += v.desconto;
+      taxas += v.taxaEntrega;
       if (v.pagamentos.isEmpty) {
         // Vendas antigas, sem a lista de pagamentos: usa a forma única.
         final f = formas.putIfAbsent(
@@ -81,7 +88,9 @@ class _Resultado {
           f.lancamentos++;
         }
       }
-      final fator = v.subtotal > 0 ? v.total / v.subtotal : 0.0;
+      final fator = v.subtotal > 0
+          ? (v.total - v.taxaEntrega) / v.subtotal
+          : 0.0;
       for (final i in v.itens) {
         custo += i.custoTotal;
         final p = produtos.putIfAbsent(i.nome, () => _ProdutoLucro(i.nome));
@@ -95,6 +104,7 @@ class _Resultado {
       liquido,
       custo,
       descontos,
+      taxas,
       formas.values.toList()..sort((a, b) => b.total.compareTo(a.total)),
       (produtos.values.toList()..sort((a, b) => b.receita.compareTo(a.receita)))
           .take(12)
@@ -134,6 +144,10 @@ class _RelatoriosPageState extends State<RelatoriosPage> {
             ('Margem bruta', r.margemTexto),
             ('Descontos', formatarMoeda(r.descontos)),
           ]),
+          if (r.taxas > 0)
+            pdfIndicadores([
+              ('Taxas de entrega (fora do lucro)', formatarMoeda(r.taxas)),
+            ]),
           pdfTituloSecao('Por forma de pagamento'),
           pdfTabela(
             ['Forma', 'Lançamentos', 'Total'],
@@ -246,7 +260,9 @@ class _RelatoriosPageState extends State<RelatoriosPage> {
           KpiCard(
             titulo: 'Lucro bruto estimado',
             valor: formatarMoeda(r.lucro),
-            subtitulo: 'faturamento − custo',
+            subtitulo: r.taxas > 0
+                ? 'faturamento − entregas − custo'
+                : 'faturamento − custo',
             icone: Icons.trending_up,
             cor: r.lucro < 0 ? t.colorScheme.error : null,
           ),
@@ -262,6 +278,13 @@ class _RelatoriosPageState extends State<RelatoriosPage> {
             subtitulo: 'concedidos no período',
             icone: Icons.discount_outlined,
           ),
+          if (r.taxas > 0)
+            KpiCard(
+              titulo: 'Taxas de entrega',
+              valor: formatarMoeda(r.taxas),
+              subtitulo: 'cobradas no delivery (fora do lucro)',
+              icone: Icons.delivery_dining_outlined,
+            ),
         ],
       ),
       LayoutBuilder(

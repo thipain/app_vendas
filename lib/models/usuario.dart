@@ -8,6 +8,9 @@ class Usuario {
   static const papelAdmin = 'admin';
   static const papelVendas = 'vendas';
 
+  /// Motoboy: só vê as próprias entregas, o ponto e o perfil.
+  static const papelEntregador = 'entregador';
+
   final String id;
   final String nome;
   final String email;
@@ -25,9 +28,12 @@ class Usuario {
   });
 
   bool get isAdmin => papel == papelAdmin;
+  bool get isEntregador => papel == papelEntregador;
 
   bool pode(String permissao) {
     if (!ativo) return false;
+    if (permissao == Permissao.entregas) return isEntregador;
+    if (isEntregador) return Permissao.doEntregador.contains(permissao);
     if (isAdmin) return true;
     if (permissao == Permissao.admin) return false;
     return Permissao.livres.contains(permissao) ||

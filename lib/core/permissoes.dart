@@ -18,12 +18,20 @@ class Permissao {
   static const cancelarVendas = 'cancelar_vendas';
   static const auditoria = 'auditoria';
   static const clientes = 'clientes';
+  static const delivery = 'delivery';
 
   /// Sempre liberados para qualquer funcionário ativo.
   static const vendas = 'vendas';
   static const meuPonto = 'meu_ponto';
   static const retiradas = 'retiradas';
-  static const livres = {vendas, meuPonto, retiradas};
+  static const perfil = 'perfil';
+  static const livres = {vendas, meuPonto, retiradas, perfil};
+
+  /// Tela do motoboy com as entregas atribuídas a ele (só papel entregador).
+  static const entregas = 'entregas';
+
+  /// Tudo o que o entregador acessa.
+  static const doEntregador = {entregas, meuPonto, perfil};
 
   /// Somente administradores (equipe, configurações).
   static const admin = 'admin';
@@ -31,6 +39,7 @@ class Permissao {
   static const catalogo = {
     dashboard: 'Visão geral',
     comandas: 'Comandas',
+    delivery: 'Delivery (pedidos de entrega)',
     calculadora: 'Calculadora',
     historico: 'Histórico de vendas',
     clientes: 'Clientes',

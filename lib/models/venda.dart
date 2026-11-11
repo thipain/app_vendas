@@ -175,6 +175,11 @@ class Venda {
   final String? caixaId;
   final String? comandaId;
   final String? comandaNome;
+
+  /// Pedido de delivery que gerou a venda e a taxa de entrega cobrada (fora
+  /// dos itens, para não entrar no lucro por produto).
+  final String? pedidoId;
+  final double taxaEntrega;
   final String vendedorId;
   final String vendedorNome;
 
@@ -204,6 +209,8 @@ class Venda {
     this.caixaId,
     this.comandaId,
     this.comandaNome,
+    this.pedidoId,
+    this.taxaEntrega = 0,
     this.vendedorId = '',
     this.vendedorNome = '',
     required this.data,
@@ -216,7 +223,8 @@ class Venda {
 
   int get subtotalCentavos => itens.fold(0, (s, i) => s + i.totalCentavos);
   double get subtotal => deCentavos(subtotalCentavos);
-  double get total => deCentavos(subtotalCentavos - centavos(desconto));
+  double get total =>
+      deCentavos(subtotalCentavos - centavos(desconto) + centavos(taxaEntrega));
   double get custoTotal => itens.fold(0, (s, i) => s + i.custoTotal);
   double get troco => pagamentos.fold(0, (s, p) => s + p.troco);
   bool get isCancelada => status == cancelada;
@@ -263,6 +271,8 @@ class Venda {
       caixaId: d['caixaId'] as String?,
       comandaId: d['comandaId'] as String?,
       comandaNome: d['comandaNome'] as String?,
+      pedidoId: d['pedidoId'] as String?,
+      taxaEntrega: (d['taxaEntrega'] as num?)?.toDouble() ?? 0,
       vendedorId: vendedor?['uid'] as String? ?? '',
       vendedorNome:
           vendedor?['nome'] as String? ?? d['vendedorEmail'] as String? ?? '',
@@ -291,6 +301,8 @@ class Venda {
     'caixaId': caixaId,
     'comandaId': comandaId,
     'comandaNome': comandaNome,
+    if (pedidoId != null) 'pedidoId': pedidoId,
+    if (taxaEntrega > 0) 'taxaEntrega': taxaEntrega,
     'vendedor': {'uid': vendedorId, 'nome': vendedorNome},
     'data': Timestamp.fromDate(data),
   };

@@ -7,6 +7,8 @@ import '../calculadora/calculadora_page.dart';
 import '../clientes/clientes_page.dart';
 import '../comandas/comandas_page.dart';
 import '../configuracoes/configuracoes_page.dart';
+import '../delivery/entregas_page.dart';
+import '../delivery/pedidos_page.dart';
 import '../equipe/equipe_page.dart';
 import '../estoque/movimentacoes_page.dart';
 import '../estoque/notas_entrada_page.dart';
@@ -86,6 +88,22 @@ final modulos = <Modulo>[
     permissao: Permissao.comandas,
     grupo: Grupos.operacao,
     builder: (_) => const ComandasPage(),
+  ),
+  Modulo(
+    id: 'delivery',
+    titulo: 'Delivery',
+    icone: Icons.delivery_dining_outlined,
+    permissao: Permissao.delivery,
+    grupo: Grupos.operacao,
+    builder: (_) => const PedidosPage(),
+  ),
+  Modulo(
+    id: 'entregas',
+    titulo: 'Minhas entregas',
+    icone: Icons.two_wheeler,
+    permissao: Permissao.entregas,
+    grupo: Grupos.operacao,
+    builder: (_) => const EntregasPage(),
   ),
   Modulo(
     id: 'retiradas',
@@ -212,7 +230,7 @@ final modulos = <Modulo>[
     id: 'perfil',
     titulo: 'Meu perfil',
     icone: Icons.person_outline,
-    permissao: Permissao.vendas,
+    permissao: Permissao.perfil,
     grupo: Grupos.gestao,
     noMenu: false,
     builder: (_) => const PerfilPage(),

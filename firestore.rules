@@ -59,6 +59,16 @@ service cloud.firestore {
     function acessa(loja) {
       return ativoNa(loja) || dono();
     }
+    // Entregador (motoboy): só vê as entregas atribuídas a ele, o próprio
+    // ponto e as configurações da loja.
+    function entregadorNa(loja) {
+      return ativoNa(loja)
+        && get(caminhoMembro(loja)).data.papel == 'entregador';
+    }
+    // Equipe da loja, sem o entregador.
+    function equipeNa(loja) {
+      return acessa(loja) && !entregadorNa(loja);
+    }
 
     match /config/sistema {
       allow read: if logado();
@@ -138,11 +148,40 @@ service cloud.firestore {
       }
 
       match /{colecao}/{id} {
-        allow read, write: if acessa(loja) && colecao in [
+        allow read, write: if equipeNa(loja) && colecao in [
           'produtos', 'clientes', 'vendas', 'caixas', 'movimentosCaixa',
           'comandas', 'movimentosEstoque', 'notasEntrada', 'receitas',
-          'operacoesEstoque', 'retiradas', 'ponto'
+          'operacoesEstoque', 'retiradas', 'ponto', 'pedidos'
         ];
+      }
+
+      // O entregador registra o próprio ponto.
+      match /ponto/{id} {
+        allow read: if entregadorNa(loja)
+          && resource.data.usuarioId == request.auth.uid;
+        allow create: if entregadorNa(loja)
+          && request.resource.data.usuarioId == request.auth.uid;
+      }
+
+      // Pedidos de delivery: o entregador lê os atribuídos a ele e só pode
+      // marcar como entregue um pedido em rota.
+      match /pedidos/{id} {
+        allow read: if entregadorNa(loja)
+          && resource.data.entregadorId == request.auth.uid;
+        allow update: if entregadorNa(loja)
+          && resource.data.entregadorId == request.auth.uid
+          && resource.data.status == 'em_rota'
+          && request.resource.data.status == 'entregue'
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'entregueEm', 'localEntrega']);
+
+        // Comprovante do Pix: só a equipe da loja.
+        match /anexos/{anexo} {
+          allow read, delete: if equipeNa(loja);
+          allow create, update: if equipeNa(loja)
+            && request.resource.data.imagem is string
+            && request.resource.data.imagem.size() <= 900000;
+        }
       }
     }
 

@@ -27,7 +27,11 @@ class _MeuPontoPageState extends State<MeuPontoPage> {
 
   void _carregar() {
     final p = Periodo.hoje();
-    _hoje = PontoRepository().watchPeriodo(p.inicio, p.fim);
+    _hoje = PontoRepository().watchPeriodo(
+      p.inicio,
+      p.fim,
+      usuarioId: Sessao.instancia.atual.id,
+    );
   }
 
   @override

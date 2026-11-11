@@ -41,6 +41,15 @@ class Dados {
     parar();
     ConfigRepository.iniciar();
     _subs.add(
+      UsuarioRepository().watchTodos().listen(
+        (l) => equipe.value = l,
+        onError: (Object e) => debugPrint('Equipe: $e'),
+      ),
+    );
+    // O entregador só acessa as próprias entregas: as regras do Firestore
+    // não liberam produtos nem caixa para ele.
+    if (Sessao.instancia.atual.isEntregador) return;
+    _subs.add(
       ProdutoRepository().watchTodos().listen(
         (l) => produtos.value = l,
         onError: (Object e) => debugPrint('Produtos: $e'),
@@ -57,12 +66,6 @@ class Dados {
         (Object e) => debugPrint('Limpeza de fotos: $e'),
       );
     }
-    _subs.add(
-      UsuarioRepository().watchTodos().listen(
-        (l) => equipe.value = l,
-        onError: (Object e) => debugPrint('Equipe: $e'),
-      ),
-    );
   }
 
   static void parar() {

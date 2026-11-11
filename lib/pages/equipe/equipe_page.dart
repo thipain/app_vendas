@@ -119,6 +119,8 @@ class _CartaoUsuario extends StatelessWidget {
     final modulos = u.permissoes.where(Permissao.catalogo.containsKey).length;
     final papel = u.isAdmin
         ? 'Administrador — acesso total'
+        : u.isEntregador
+        ? 'Entregador (motoboy)'
         : '$modulos módulos liberados';
     final acoes = Wrap(
       spacing: 8,

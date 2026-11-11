@@ -23,8 +23,14 @@ class PontoRepository {
   final _db = FirebaseFirestore.instance;
   CollectionReference<Map<String, dynamic>> get _col => Banco.col('ponto');
 
-  Stream<List<RegistroPonto>> watchPeriodo(DateTime inicio, DateTime fim) =>
-      _col
+  /// Com [usuarioId], só os registros dessa pessoa (o entregador só pode
+  /// ler o próprio ponto).
+  Stream<List<RegistroPonto>> watchPeriodo(
+    DateTime inicio,
+    DateTime fim, {
+    String? usuarioId,
+  }) =>
+      (usuarioId == null ? _col : _col.where('usuarioId', isEqualTo: usuarioId))
           .where('data', isGreaterThanOrEqualTo: Timestamp.fromDate(inicio))
           .where('data', isLessThan: Timestamp.fromDate(fim))
           .orderBy('data', descending: true)

@@ -39,6 +39,7 @@ String mensagemErroConta(Object erro) {
 const _niveis = {
   Usuario.papelVendas: 'Funcionário com acessos personalizados',
   Usuario.papelAdmin: 'Administrador completo',
+  Usuario.papelEntregador: 'Entregador (motoboy) — só vê as próprias entregas',
 };
 
 /// Abre o cadastro de um novo funcionário (precisa de internet).
@@ -199,7 +200,7 @@ class _NovoFuncionarioDialogState extends State<_NovoFuncionarioDialog> {
         email: email,
         senha: senha,
         papel: _papel,
-        permissoes: _papel == Usuario.papelAdmin ? const {} : _permissoes,
+        permissoes: _papel == Usuario.papelVendas ? _permissoes : const {},
         lojaNome: Sessao.instancia.lojaNome,
         equipe: Dados.equipe.value,
       );
@@ -272,7 +273,7 @@ class _NovoFuncionarioDialogState extends State<_NovoFuncionarioDialog> {
               ),
               _ListaPermissoes(
                 selecionadas: _permissoes,
-                habilitado: !_salvando && _papel != Usuario.papelAdmin,
+                habilitado: !_salvando && _papel == Usuario.papelVendas,
                 onChanged: (p) => setState(() => _permissoes = p),
               ),
               Text(
@@ -342,7 +343,7 @@ class _AcessosDialogState extends State<_AcessosDialog> {
     final depois = antes.copyWith(
       nome: nome,
       papel: papel,
-      permissoes: papel == Usuario.papelAdmin ? const {} : _permissoes,
+      permissoes: papel == Usuario.papelVendas ? _permissoes : const {},
     );
     setState(() {
       _salvando = true;
@@ -434,14 +435,16 @@ class _AcessosDialogState extends State<_AcessosDialog> {
               ),
               const SizedBox(height: 8),
               Text(
-                '✓ Vendas   ✓ Retiradas   ✓ Meu ponto',
+                _papel == Usuario.papelEntregador
+                    ? '✓ Minhas entregas   ✓ Meu ponto'
+                    : '✓ Vendas   ✓ Retiradas   ✓ Meu ponto',
                 style: t.textTheme.bodyMedium?.copyWith(
                   color: t.colorScheme.primary,
                 ),
               ),
               _ListaPermissoes(
                 selecionadas: _permissoes,
-                habilitado: !ocupado && _papel != Usuario.papelAdmin,
+                habilitado: !ocupado && _papel == Usuario.papelVendas,
                 onChanged: (p) => setState(() => _permissoes = p),
               ),
               const SizedBox(height: 8),

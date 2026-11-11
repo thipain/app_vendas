@@ -21,6 +21,31 @@ class ItemComanda {
 
   int get totalCentavos => centavos(precoUnitario) * quantidade;
   double get total => deCentavos(totalCentavos);
+
+  /// Itens gravados num mapa produtoId → dados, para que lançamentos feitos
+  /// em aparelhos diferentes se somem (FieldValue.increment na quantidade).
+  /// Usado pelas comandas e pelos pedidos de delivery.
+  static List<ItemComanda> doMapa(Map<dynamic, dynamic>? mapa) {
+    final itens = <ItemComanda>[];
+    (mapa ?? const {}).forEach((id, v) {
+      final m = Map<String, dynamic>.from(v as Map);
+      final qtd = (m['quantidade'] as num?)?.toInt() ?? 0;
+      if (qtd <= 0) return;
+      itens.add(
+        ItemComanda(
+          produtoId: id as String,
+          nome: m['nome'] as String? ?? '',
+          codigo: m['codigo'] as String? ?? '',
+          quantidade: qtd,
+          precoUnitario: (m['precoUnitario'] as num?)?.toDouble() ?? 0,
+          adicionadoEm:
+              (m['adicionadoEm'] as Timestamp?)?.toDate() ?? DateTime.now(),
+        ),
+      );
+    });
+    itens.sort((a, b) => a.adicionadoEm.compareTo(b.adicionadoEm));
+    return itens;
+  }
 }
 
 /// Comanda aberta: os itens já saem do estoque quando são lançados; o
@@ -62,26 +87,7 @@ class Comanda {
 
   factory Comanda.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final d = doc.data() ?? const {};
-    final itens = <ItemComanda>[];
-    // Itens ficam num mapa produtoId → dados, para que lançamentos feitos em
-    // aparelhos diferentes se somem (FieldValue.increment na quantidade).
-    (d['itens'] as Map? ?? const {}).forEach((id, v) {
-      final m = Map<String, dynamic>.from(v as Map);
-      final qtd = (m['quantidade'] as num?)?.toInt() ?? 0;
-      if (qtd <= 0) return;
-      itens.add(
-        ItemComanda(
-          produtoId: id as String,
-          nome: m['nome'] as String? ?? '',
-          codigo: m['codigo'] as String? ?? '',
-          quantidade: qtd,
-          precoUnitario: (m['precoUnitario'] as num?)?.toDouble() ?? 0,
-          adicionadoEm:
-              (m['adicionadoEm'] as Timestamp?)?.toDate() ?? DateTime.now(),
-        ),
-      );
-    });
-    itens.sort((a, b) => a.adicionadoEm.compareTo(b.adicionadoEm));
+    final itens = ItemComanda.doMapa(d['itens'] as Map?);
     return Comanda(
       id: doc.id,
       nome: d['nome'] as String? ?? '',

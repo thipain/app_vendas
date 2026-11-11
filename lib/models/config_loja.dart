@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'venda.dart';
+
 /// Identidade da loja e dados do comprovante, editados em Configurações.
 class ConfigLoja {
   final String nomeLoja;
@@ -15,6 +17,12 @@ class ConfigLoja {
   /// Logo em JPEG/PNG codificado em base64 (vazio = inicial do nome).
   final String logo;
 
+  /// Delivery: taxa padrão de entrega, chave Pix mostrada ao cliente e ao
+  /// atendente, e as formas de pagamento aceitas nas entregas.
+  final double taxaEntrega;
+  final String chavePix;
+  final List<String> formasDelivery;
+
   const ConfigLoja({
     this.nomeLoja = 'Minha Loja',
     this.nomeSistema = 'App Vendas',
@@ -26,7 +34,17 @@ class ConfigLoja {
     this.corPrimaria = const Color(0xFF173F2D),
     this.corDestaque = const Color(0xFFD8ED87),
     this.logo = '',
+    this.taxaEntrega = 0,
+    this.chavePix = '',
+    this.formasDelivery = formasDeliveryPadrao,
   });
+
+  static const formasDeliveryPadrao = [
+    FormaPagamento.pix,
+    FormaPagamento.dinheiro,
+    FormaPagamento.debito,
+    FormaPagamento.credito,
+  ];
 
   static Color _cor(Object? v, Color padrao) {
     if (v is! String) return padrao;
@@ -54,6 +72,14 @@ class ConfigLoja {
       corPrimaria: _cor(d['corPrimaria'], p.corPrimaria),
       corDestaque: _cor(d['corDestaque'], p.corDestaque),
       logo: s('logo', p.logo),
+      taxaEntrega: (d['taxaEntrega'] as num?)?.toDouble() ?? p.taxaEntrega,
+      chavePix: s('chavePix', p.chavePix),
+      formasDelivery: d['formasDelivery'] is List
+          ? [
+              for (final f in FormaPagamento.todas)
+                if ((d['formasDelivery'] as List).contains(f)) f,
+            ]
+          : p.formasDelivery,
     );
   }
 
@@ -68,5 +94,8 @@ class ConfigLoja {
     'corPrimaria': corParaHex(corPrimaria),
     'corDestaque': corParaHex(corDestaque),
     'logo': logo,
+    'taxaEntrega': taxaEntrega,
+    'chavePix': chavePix,
+    'formasDelivery': formasDelivery,
   };
 }

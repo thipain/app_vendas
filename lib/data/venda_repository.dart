@@ -6,6 +6,7 @@ import '../core/sessao.dart';
 import '../models/caixa.dart';
 import '../models/comanda.dart';
 import '../models/movimento_estoque.dart';
+import '../models/pedido.dart';
 import '../models/produto.dart';
 import '../models/venda.dart';
 import 'auditoria_repository.dart';
@@ -26,6 +27,8 @@ class VendaRepository {
   CollectionReference<Map<String, dynamic>> get _vendas => Banco.col('vendas');
   CollectionReference<Map<String, dynamic>> get _comandas =>
       Banco.col('comandas');
+  CollectionReference<Map<String, dynamic>> get _pedidos =>
+      Banco.col('pedidos');
 
   Stream<List<Venda>> watchRecentes({int limite = 200}) => _vendas
       .orderBy('data', descending: true)
@@ -46,7 +49,7 @@ class VendaRepository {
       .snapshots(includeMetadataChanges: true)
       .map((d) => d.exists ? Venda.fromDoc(d) : null);
 
-  static void _validarCarrinho(List<ItemCarrinho> carrinho) {
+  static void validarCarrinho(List<ItemCarrinho> carrinho) {
     if (carrinho.isEmpty) {
       throw const RegraException('Adicione ao menos um produto.');
     }
@@ -78,16 +81,21 @@ class VendaRepository {
     required List<Pagamento> pagamentos,
     required Caixa caixa,
     Comanda? comanda,
+    Pedido? pedido,
     String? clienteId,
     String? clienteNome,
   }) {
     final subtotal = itens.fold<int>(0, (s, i) => s + i.totalCentavos);
+    final taxa = centavos(pedido?.taxaEntrega ?? 0);
     final desconto = calcularDesconto(
       subtotal,
       descontoPercentual,
       descontoInformado,
     );
-    final processados = processarPagamentos(pagamentos, subtotal - desconto);
+    final processados = processarPagamentos(
+      pagamentos,
+      subtotal - desconto + taxa,
+    );
     final eu = Sessao.instancia.atual;
     final venda = Venda(
       id: ref.id,
@@ -102,6 +110,8 @@ class VendaRepository {
       caixaId: caixa.id,
       comandaId: comanda?.id,
       comandaNome: comanda?.nome,
+      pedidoId: pedido?.id,
+      taxaEntrega: deCentavos(taxa),
       vendedorId: eu.id,
       vendedorNome: eu.nome,
       data: DateTime.now(),
@@ -117,7 +127,9 @@ class VendaRepository {
         caixaId: caixa.id,
         tipo: MovimentoCaixa.venda,
         valor: dinheiro,
-        descricao: comanda == null
+        descricao: pedido != null
+            ? 'Delivery #${pedido.codigo} — ${pedido.clienteNome}'
+            : comanda == null
             ? 'Venda concluída'
             : 'Fechamento de comanda',
         vendaId: ref.id,
@@ -139,7 +151,7 @@ class VendaRepository {
     if (caixa == null) {
       throw const RegraException('Abra o caixa antes de finalizar uma venda.');
     }
-    _validarCarrinho(carrinho);
+    validarCarrinho(carrinho);
     final ref = _vendas.doc();
     final batch = _db.batch();
     final venda = _gravarVenda(
@@ -194,7 +206,7 @@ class VendaRepository {
     if (!comanda.isAberta) {
       throw const RegraException('A comanda não está mais aberta.');
     }
-    _validarCarrinho(carrinho);
+    validarCarrinho(carrinho);
     final batch = _db.batch();
     final ref = _comandas.doc(comanda.id);
     final existentes = {for (final i in comanda.itens) i.produtoId};
@@ -295,6 +307,89 @@ class VendaRepository {
       },
     );
     semAguardar(batch.commit(), 'fechamento da comanda ${comanda.nome}');
+    return venda;
+  }
+
+  /// Conclui um pedido de delivery entregue: gera a venda (itens + taxa de
+  /// entrega) com o pagamento recebido. O dinheiro entra no caixa aberto,
+  /// como no acerto com o entregador. O estoque já saiu quando o pedido foi
+  /// registrado.
+  ///
+  /// [forma] é a forma realmente usada (o cliente pode ter mudado de ideia);
+  /// [recebidoEmDinheiro] é a nota que o cliente entregou, para o troco.
+  Venda concluirPedido({
+    required Pedido pedido,
+    required Caixa? caixa,
+    required Map<String, Produto> produtos,
+    required String forma,
+    double? recebidoEmDinheiro,
+  }) {
+    if (caixa == null) {
+      throw const RegraException('Abra o caixa antes de concluir um pedido.');
+    }
+    if (pedido.status != Pedido.entregue) {
+      throw const RegraException(
+        'Só pedidos já entregues podem ser concluídos.',
+      );
+    }
+    if (pedido.itens.isEmpty) {
+      throw const RegraException('O pedido está vazio.');
+    }
+    if (forma == FormaPagamento.pix &&
+        (!pedido.isPix || !pedido.pixConfirmado)) {
+      throw const RegraException(
+        'Confirme o recebimento do Pix antes de concluir o pedido.',
+      );
+    }
+    final total = pedido.total;
+    final recebido = forma == FormaPagamento.dinheiro
+        ? (recebidoEmDinheiro ?? total)
+        : total;
+    final ref = _vendas.doc();
+    final batch = _db.batch();
+    final venda = _gravarVenda(
+      batch,
+      ref,
+      itens: [
+        for (final i in pedido.itens)
+          ItemVenda(
+            produtoId: i.produtoId,
+            nome: i.nome,
+            quantidade: i.quantidade,
+            precoUnitario: i.precoUnitario,
+            custoUnitario: produtos[i.produtoId]?.custo ?? 0,
+          ),
+      ],
+      descontoPercentual: false,
+      descontoInformado: 0,
+      pagamentos: [Pagamento(forma: forma, valor: total, recebido: recebido)],
+      caixa: caixa,
+      pedido: pedido,
+      clienteId: pedido.clienteId,
+      clienteNome: pedido.clienteNome,
+    );
+    batch.update(_pedidos.doc(pedido.id), {
+      'status': Pedido.concluido,
+      'finalizadoEm': Timestamp.now(),
+      'vendaId': ref.id,
+      'formaRecebida': forma,
+      'concluidoPor': Sessao.instancia.autor,
+    });
+    AuditoriaRepository.noBatch(
+      batch,
+      'delivery.close',
+      'Pedido de delivery concluído',
+      entidade: 'pedido',
+      entidadeId: pedido.id,
+      depois: {
+        'vendaId': ref.id,
+        'total': venda.total,
+        'taxaEntrega': venda.taxaEntrega,
+        'pagamentos': venda.pagamentos.map((p) => p.toMap()).toList(),
+        'entregador': pedido.entregadorNome,
+      },
+    );
+    semAguardar(batch.commit(), 'conclusão do pedido ${pedido.codigo}');
     return venda;
   }
 

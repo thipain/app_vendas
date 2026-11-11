@@ -51,10 +51,13 @@ class _AppShellState extends State<AppShell> {
   void initState() {
     super.initState();
     final p = _permitidos;
-    _atual = p.firstWhere(
-      (m) => m.id == 'dashboard',
-      orElse: () => p.firstWhere((m) => m.id == 'vendas'),
-    );
+    const inicio = ['dashboard', 'vendas', 'entregas'];
+    _atual =
+        inicio
+            .map((id) => p.where((m) => m.id == id).firstOrNull)
+            .nonNulls
+            .firstOrNull ??
+        p.first;
   }
 
   void _abrir(String id, {Object? argumento}) {
@@ -305,7 +308,11 @@ class _Menu extends StatelessWidget {
               ),
               title: Text(eu.nome, overflow: TextOverflow.ellipsis),
               subtitle: Text(
-                eu.isAdmin ? 'Administrador' : 'Acesso personalizado',
+                eu.isAdmin
+                    ? 'Administrador'
+                    : eu.isEntregador
+                    ? 'Entregador'
+                    : 'Acesso personalizado',
               ),
               onTap: onPerfil,
             ),

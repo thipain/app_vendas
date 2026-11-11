@@ -14,6 +14,7 @@ class MovimentoEstoque {
   static const decomposicao = 'decomposicao';
   static const retirada = 'retirada';
   static const retiradaDevolucao = 'retirada_devolucao';
+  static const delivery = 'delivery';
 
   static const nomes = {
     inicial: 'Saldo inicial',
@@ -28,6 +29,7 @@ class MovimentoEstoque {
     decomposicao: 'Desmanche',
     retirada: 'Retirada de funcionário',
     retiradaDevolucao: 'Devolução de retirada',
+    delivery: 'Delivery',
   };
 
   final String id;

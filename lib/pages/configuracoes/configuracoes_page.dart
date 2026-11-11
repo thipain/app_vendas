@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../core/formatters.dart';
 import '../../core/imagem.dart';
 import '../../core/regra_exception.dart';
 import '../../data/config_repository.dart';
 import '../../models/config_loja.dart';
+import '../../models/venda.dart';
 import '../../widgets/foto_produto.dart';
 import '../../widgets/largura_maxima.dart';
 import '../../widgets/mensagens.dart';
@@ -35,6 +37,11 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
   late final _corDestaque = TextEditingController(
     text: ConfigLoja.corParaHex(_c.corDestaque),
   );
+  late final _taxaEntrega = TextEditingController(
+    text: valorParaCampo(_c.taxaEntrega),
+  );
+  late final _chavePix = TextEditingController(text: _c.chavePix);
+  late final _formasDelivery = {..._c.formasDelivery};
   late String _logo = _c.logo;
   bool _carregandoLogo = false;
 
@@ -50,6 +57,8 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
       _status,
       _corPrimaria,
       _corDestaque,
+      _taxaEntrega,
+      _chavePix,
     ]) {
       c.dispose();
     }
@@ -106,6 +115,27 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
       );
       return;
     }
+    final taxa = lerValor(_taxaEntrega.text) ?? 0;
+    if (taxa < 0 || taxa > 1000) {
+      mostrarErro(context, const RegraException('Taxa de entrega inválida.'));
+      return;
+    }
+    if (_chavePix.text.trim().length > 120) {
+      mostrarErro(
+        context,
+        const RegraException('A chave Pix pode ter até 120 caracteres.'),
+      );
+      return;
+    }
+    if (_formasDelivery.isEmpty) {
+      mostrarErro(
+        context,
+        const RegraException(
+          'Escolha ao menos uma forma de pagamento para o delivery.',
+        ),
+      );
+      return;
+    }
     final primaria = _lerCor(_corPrimaria.text);
     final destaque = _lerCor(_corDestaque.text);
     if (primaria == null || destaque == null) {
@@ -123,6 +153,12 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
       corPrimaria: primaria,
       corDestaque: destaque,
       logo: _logo,
+      taxaEntrega: taxa,
+      chavePix: _chavePix.text.trim(),
+      formasDelivery: [
+        for (final f in FormaPagamento.todas)
+          if (_formasDelivery.contains(f)) f,
+      ],
     );
     executar(
       context,
@@ -165,6 +201,59 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
                   _campo(_documento, 'CPF / CNPJ', 30),
                   _campo(_endereco, 'Endereço', 255),
                   _campo(_mensagem, 'Mensagem no rodapé *', 300, linhas: 3),
+                ]),
+                const TituloSecao('Delivery'),
+                _cartao([
+                  TextField(
+                    controller: _taxaEntrega,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Taxa de entrega (R\$)',
+                      helperText:
+                          'Valor que entra em cada pedido. Pode ser alterado '
+                          'no próprio pedido (ex.: endereço mais longe).',
+                      helperMaxLines: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _campo(
+                    _chavePix,
+                    'Chave Pix da loja',
+                    120,
+                    ajuda: 'Enviada ao cliente que escolher pagar no Pix.',
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Formas de pagamento aceitas no delivery',
+                    style: t.textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final f in FormaPagamento.todas)
+                        FilterChip(
+                          label: Text(f),
+                          selected: _formasDelivery.contains(f),
+                          onSelected: (v) => setState(
+                            () => v
+                                ? _formasDelivery.add(f)
+                                : _formasDelivery.remove(f),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Pix: o atendente anexa o comprovante e confirma o '
+                    'recebimento. Dinheiro: o pedido pergunta o troco. '
+                    'Cartão e VR: o entregador é avisado para levar a '
+                    'maquininha.',
+                    style: t.textTheme.bodySmall,
+                  ),
                 ]),
                 const TituloSecao('Cores'),
                 _cartao([

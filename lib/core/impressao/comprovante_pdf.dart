@@ -17,6 +17,10 @@ const _tracos = '--------------------------------';
 
 String _data(DateTime d) => DateFormat('dd/MM/yyyy HH:mm').format(d);
 
+/// Código curto exibido para ids do Firestore (6 primeiros caracteres).
+String codigoCurto(String id) =>
+    id.length > 6 ? id.substring(0, 6).toUpperCase() : id;
+
 /// Linhas de pagamento como no comprovante ("Crédito 3x", "Troco").
 List<(String, String)> linhasPagamentoComprovante(Venda v) {
   if (v.pagamentos.isEmpty) {
@@ -48,6 +52,7 @@ String textoComprovantePadrao(Venda v, ConfigLoja loja) {
     ..writeln('Data: ${_data(v.data)}')
     ..writeln('Atendente: ${v.vendedorNome}');
   if (v.comandaNome != null) b.writeln('Comanda: ${v.comandaNome}');
+  if (v.pedidoId != null) b.writeln('Delivery: #${codigoCurto(v.pedidoId!)}');
   if (v.clienteNome != null) b.writeln('Cliente: ${v.clienteNome}');
   b.writeln(_tracos);
   for (final i in v.itens) {
@@ -61,8 +66,11 @@ String textoComprovantePadrao(Venda v, ConfigLoja loja) {
   b
     ..writeln(_tracos)
     ..writeln('Subtotal: ${formatarMoeda(v.subtotal)}')
-    ..writeln('Desconto: - ${formatarMoeda(v.desconto)}')
-    ..writeln('TOTAL: ${formatarMoeda(v.total)}');
+    ..writeln('Desconto: - ${formatarMoeda(v.desconto)}');
+  if (v.taxaEntrega > 0) {
+    b.writeln('Taxa de entrega: ${formatarMoeda(v.taxaEntrega)}');
+  }
+  b.writeln('TOTAL: ${formatarMoeda(v.total)}');
   for (final (rotulo, valor) in linhasPagamentoComprovante(v)) {
     b.writeln('$rotulo: $valor');
   }
@@ -84,7 +92,7 @@ String textoComprovantePadrao(Venda v, ConfigLoja loja) {
 }
 
 /// As fontes padrão do PDF só têm Latin-1: troca o que estiver fora dele.
-String _latin1(String s) {
+String latin1Pdf(String s) {
   const trocas = {
     '—': '-',
     '–': '-',
@@ -127,7 +135,7 @@ Future<Uint8List> gerarComprovantePdf(
   final normal = pw.TextStyle(font: fonte, fontSize: tam);
   final forte = pw.TextStyle(font: negrito, fontSize: tam);
   pw.Widget t(String s, {pw.TextStyle? estilo, pw.TextAlign? alinhar}) =>
-      pw.Text(_latin1(s), style: estilo ?? normal, textAlign: alinhar);
+      pw.Text(latin1Pdf(s), style: estilo ?? normal, textAlign: alinhar);
   pw.Widget linha(String a, String b, {bool destaque = false}) => pw.Row(
     crossAxisAlignment: pw.CrossAxisAlignment.start,
     children: [
@@ -192,6 +200,7 @@ Future<Uint8List> gerarComprovantePdf(
       linha('Data', _data(v.data)),
       linha('Atendente', v.vendedorNome),
       if (v.comandaNome != null) linha('Comanda', v.comandaNome!),
+      if (v.pedidoId != null) linha('Delivery', '#${codigoCurto(v.pedidoId!)}'),
       if (v.clienteNome != null) linha('Cliente', v.clienteNome!),
       separador(),
       pw.Row(
@@ -231,6 +240,8 @@ Future<Uint8List> gerarComprovantePdf(
       separador(),
       linha('Subtotal', formatarMoeda(v.subtotal)),
       linha('Desconto', '- ${formatarMoeda(v.desconto)}'),
+      if (v.taxaEntrega > 0)
+        linha('Taxa de entrega', formatarMoeda(v.taxaEntrega)),
       linha('Total', formatarMoeda(v.total), destaque: true),
       pw.SizedBox(height: 2),
       for (final (rotulo, valor) in linhasPagamentoComprovante(v))

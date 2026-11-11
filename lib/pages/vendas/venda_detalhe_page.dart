@@ -119,6 +119,8 @@ class DetalhesVenda extends StatelessWidget {
                 : 'Desconto',
             '- ${formatarMoeda(v.desconto)}',
           ),
+        if (v.taxaEntrega > 0)
+          _linha('Taxa de entrega', formatarMoeda(v.taxaEntrega)),
         _linha(
           'Total',
           formatarMoeda(v.total),

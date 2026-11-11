@@ -23,6 +23,17 @@ Sistema completo de PDV para adega/loja, com todas as funções do AdegaPDV (ver
   por pessoa e cancelamento com devolução
 - **Ponto**: registro de entrada/saída com localização e endereço; ponto da equipe
 - **Clientes**: cadastro de clientes
+- **Delivery**: pedidos de entrega registrados pelo balcão (telefone/WhatsApp) com
+  cliente, endereço, taxa de entrega e pagamento combinado. Painel por etapa
+  (novo → em preparo → em rota → entregue → concluído), itens saem do estoque ao
+  registrar e voltam se o pedido for cancelado. **Pix**: chave da loja, comprovante
+  anexado e confirmação do recebimento; **dinheiro**: "troco para quanto?";
+  **cartão/VR**: aviso para levar a maquininha. Via do entregador em 80 mm,
+  WhatsApp/ligação/mapa com um toque e **acerto com o entregador** no caixa (gera as
+  vendas, com a taxa de entrega fora do lucro dos produtos)
+- **Entregador (motoboy)**: login próprio criado em Equipe; vê só as entregas
+  atribuídas a ele, abre a rota no mapa, confere a maioridade do cliente e marca como
+  entregue (registra a localização)
 
 **Produtos e estoque**
 - **Importar produtos por planilha** (colar do Excel ou abrir CSV; modelo em
