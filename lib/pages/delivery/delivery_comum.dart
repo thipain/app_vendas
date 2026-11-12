@@ -172,6 +172,12 @@ class CartaoPedido extends StatelessWidget {
                     icone: iconeForma(p.formaPagamento),
                     texto: p.formaPagamento,
                   ),
+                  if (p.pedidoOnlineId != null)
+                    _Etiqueta(
+                      icone: Icons.public,
+                      texto: 'Online',
+                      cor: Colors.orange.shade800,
+                    ),
                   if (p.isPix && !p.pixConfirmado)
                     _Etiqueta(
                       icone: Icons.warning_amber,

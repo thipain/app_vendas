@@ -13,6 +13,7 @@ import 'auditoria_repository.dart';
 import 'caixa_repository.dart';
 import 'estoque.dart';
 import 'offline.dart';
+import 'pedido_repository.dart';
 import 'banco.dart';
 
 /// Linha do carrinho antes de virar venda.
@@ -368,6 +369,7 @@ class VendaRepository {
       clienteId: pedido.clienteId,
       clienteNome: pedido.clienteNome,
     );
+    PedidoRepository.espelharOnline(batch, pedido, Pedido.concluido);
     batch.update(_pedidos.doc(pedido.id), {
       'status': Pedido.concluido,
       'finalizadoEm': Timestamp.now(),

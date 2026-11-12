@@ -1,0 +1,879 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#173f2d">
+  <meta name="robots" content="noindex">
+  <title>Fazer pedido</title>
+  <style>
+    :root {
+      --cor: #173f2d;
+      --cor-texto: #ffffff;
+      --fundo: #f5f6f4;
+      --cartao: #ffffff;
+      --texto: #1c1f1d;
+      --suave: #5f6763;
+      --borda: #e1e4e1;
+      --erro: #b3261e;
+      --ok: #1b7f3b;
+      --aviso: #a15c00;
+      --raio: 14px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--fundo);
+      color: var(--texto);
+      font-size: 16px;
+      line-height: 1.4;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button, input, textarea, select { font: inherit; color: inherit; }
+    .oculto { display: none !important; }
+    .pagina { max-width: 720px; margin: 0 auto; padding: 0 16px 120px; }
+
+    header.topo {
+      background: var(--cor);
+      color: var(--cor-texto);
+      padding: 20px 16px 18px;
+    }
+    header.topo .dentro { max-width: 720px; margin: 0 auto; display: flex; gap: 14px; align-items: center; }
+    header.topo img { width: 56px; height: 56px; border-radius: 12px; object-fit: contain; background: #fff; }
+    header.topo .inicial {
+      width: 56px; height: 56px; border-radius: 12px; background: rgba(255,255,255,.18);
+      display: grid; place-items: center; font-weight: 700; font-size: 26px;
+    }
+    header.topo h1 { font-size: 21px; margin: 0; }
+    header.topo .info { font-size: 13px; opacity: .9; margin-top: 2px; }
+    .pilula {
+      display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 600;
+      background: rgba(255,255,255,.2); margin-right: 6px;
+    }
+    .pilula.aberta { background: #d6f5df; color: #0f5b2a; }
+    .pilula.fechada { background: #ffdcd8; color: #8c1d18; }
+
+    .aviso {
+      background: #fff4e0; border: 1px solid #f2cf8c; color: #6b4300;
+      border-radius: var(--raio); padding: 12px 14px; margin: 16px 0; font-size: 14px;
+    }
+    .aviso.erro { background: #fde7e5; border-color: #f2b8b2; color: #7d1b14; }
+
+    .busca {
+      position: sticky; top: 0; z-index: 5; background: var(--fundo);
+      padding: 12px 0 8px;
+    }
+    .busca input {
+      width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--borda); background: #fff;
+    }
+    .categorias { display: flex; gap: 8px; overflow-x: auto; padding: 8px 0 4px; scrollbar-width: none; }
+    .categorias::-webkit-scrollbar { display: none; }
+    .chip {
+      flex: none; border: 1px solid var(--borda); background: #fff; border-radius: 99px;
+      padding: 6px 14px; font-size: 14px; cursor: pointer;
+    }
+    .chip.ativo { background: var(--cor); color: var(--cor-texto); border-color: var(--cor); }
+
+    h2.secao { font-size: 17px; margin: 22px 0 8px; }
+    .item {
+      display: flex; align-items: center; gap: 12px; background: var(--cartao);
+      border: 1px solid var(--borda); border-radius: var(--raio); padding: 12px 14px; margin-bottom: 8px;
+    }
+    .item .nome { font-weight: 600; }
+    .item .det { font-size: 13px; color: var(--suave); }
+    .item .preco { font-weight: 700; margin-top: 2px; }
+    .item.esgotado { opacity: .55; }
+    .qtd { display: flex; align-items: center; gap: 4px; margin-left: auto; flex: none; }
+    .qtd button {
+      width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--borda); background: #fff;
+      font-size: 20px; line-height: 1; cursor: pointer;
+    }
+    .qtd button.mais { background: var(--cor); color: var(--cor-texto); border-color: var(--cor); }
+    .qtd button:disabled { opacity: .35; cursor: default; }
+    .qtd span { min-width: 22px; text-align: center; font-weight: 700; }
+
+    .barra {
+      position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+      background: linear-gradient(transparent, var(--fundo) 30%);
+    }
+    .barra button {
+      display: flex; justify-content: space-between; align-items: center;
+      width: 100%; max-width: 688px; margin: 0 auto; padding: 15px 18px;
+      background: var(--cor); color: var(--cor-texto); border: 0; border-radius: 14px;
+      font-weight: 700; font-size: 16px; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,.18);
+    }
+    .barra button:disabled { opacity: .45; cursor: default; }
+
+    .cartao {
+      background: var(--cartao); border: 1px solid var(--borda); border-radius: var(--raio);
+      padding: 16px; margin-bottom: 12px;
+    }
+    label.campo { display: block; font-size: 13px; color: var(--suave); margin: 12px 0 4px; }
+    .campo-input, textarea {
+      width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--borda); background: #fff;
+    }
+    .campo-input:focus, textarea:focus { outline: 2px solid var(--cor); outline-offset: -1px; }
+    .linha2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .linha2 > div { min-width: 0; }
+    .opcao {
+      display: flex; gap: 10px; align-items: center; padding: 12px; border: 1px solid var(--borda);
+      border-radius: 10px; margin-top: 8px; cursor: pointer; background: #fff;
+    }
+    .opcao.marcada { border-color: var(--cor); box-shadow: 0 0 0 1px var(--cor) inset; }
+    .opcao input { accent-color: var(--cor); width: 18px; height: 18px; }
+    .detalhe-pag { margin-top: 12px; font-size: 14px; }
+    .chave {
+      display: flex; gap: 8px; align-items: center; background: #f2f4f2; border-radius: 10px; padding: 10px 12px;
+      word-break: break-all; font-weight: 600;
+    }
+    .chave button, .botao-sec {
+      flex: none; border: 1px solid var(--borda); background: #fff; border-radius: 8px; padding: 6px 12px; cursor: pointer;
+    }
+    .anexo { margin-top: 10px; }
+    .anexo img { display: block; max-width: 100%; max-height: 260px; border-radius: 10px; margin-top: 8px; border: 1px solid var(--borda); }
+    .obrigatorio { color: var(--erro); font-weight: 600; }
+    .totais div { display: flex; justify-content: space-between; padding: 3px 0; }
+    .totais .total { font-weight: 800; font-size: 19px; border-top: 1px solid var(--borda); margin-top: 6px; padding-top: 8px; }
+    .marcar { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; }
+    .marcar input { width: 20px; height: 20px; accent-color: var(--cor); flex: none; margin-top: 1px; }
+    .voltar { background: none; border: 0; color: var(--cor); font-weight: 600; padding: 16px 0 4px; cursor: pointer; }
+
+    .etapas { list-style: none; padding: 0; margin: 8px 0 0; }
+    .etapas li { display: flex; gap: 12px; align-items: center; padding: 8px 0; color: var(--suave); }
+    .etapas li .bola {
+      width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--borda); flex: none;
+      display: grid; place-items: center; font-size: 13px; font-weight: 700; background: #fff;
+    }
+    .etapas li.feita { color: var(--texto); }
+    .etapas li.feita .bola { background: var(--cor); border-color: var(--cor); color: var(--cor-texto); }
+    .etapas li.atual { color: var(--texto); font-weight: 700; }
+    .etapas li.atual .bola { border-color: var(--cor); color: var(--cor); }
+    .grande { font-size: 22px; font-weight: 800; margin: 4px 0; }
+    .rodape { text-align: center; font-size: 12px; color: var(--suave); margin-top: 28px; }
+    .rodape a { color: inherit; }
+    @media (max-width: 380px) { .linha2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header class="topo">
+    <div class="dentro">
+      <div id="logo"></div>
+      <div>
+        <h1 id="nomeLoja">Carregando…</h1>
+        <div class="info"><span id="situacao"></span><span id="horario"></span></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="pagina">
+    <div id="mensagem" class="aviso oculto"></div>
+
+    <!-- Cardápio -->
+    <section id="telaCardapio" class="oculto">
+      <div id="avisoFechada" class="aviso oculto">
+        A loja está fechada agora e não está recebendo pedidos.
+      </div>
+      <div id="acompanharUltimo" class="aviso oculto"></div>
+      <div class="busca">
+        <input id="busca" type="search" placeholder="Buscar produto" autocomplete="off">
+        <div id="categorias" class="categorias"></div>
+      </div>
+      <div id="lista"></div>
+    </section>
+
+    <!-- Finalizar -->
+    <section id="telaFinalizar" class="oculto">
+      <button class="voltar" id="voltarCardapio">‹ Continuar comprando</button>
+      <h2 class="secao">Sua sacola</h2>
+      <div class="cartao" id="sacola"></div>
+
+      <h2 class="secao">Seus dados</h2>
+      <div class="cartao">
+        <label class="campo" for="nome">Nome *</label>
+        <input class="campo-input" id="nome" maxlength="100" autocomplete="name">
+        <label class="campo" for="telefone">Celular / WhatsApp *</label>
+        <input class="campo-input" id="telefone" maxlength="20" inputmode="tel" autocomplete="tel" placeholder="(11) 99999-9999">
+      </div>
+
+      <h2 class="secao">Endereço de entrega</h2>
+      <div class="cartao">
+        <label class="campo" for="cep">CEP</label>
+        <input class="campo-input" id="cep" maxlength="9" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000">
+        <label class="campo" for="rua">Rua *</label>
+        <input class="campo-input" id="rua" maxlength="150" autocomplete="address-line1">
+        <div class="linha2">
+          <div>
+            <label class="campo" for="numero">Número *</label>
+            <input class="campo-input" id="numero" maxlength="20">
+          </div>
+          <div>
+            <label class="campo" for="bairro">Bairro *</label>
+            <input class="campo-input" id="bairro" maxlength="60">
+          </div>
+        </div>
+        <label class="campo" for="referencia">Complemento / ponto de referência</label>
+        <input class="campo-input" id="referencia" maxlength="200">
+        <label class="campo" for="observacao">Observação</label>
+        <textarea id="observacao" rows="2" maxlength="300" placeholder="Ex.: bem gelada, interfone quebrado…"></textarea>
+        <input type="hidden" id="cidade">
+      </div>
+
+      <h2 class="secao">Pagamento</h2>
+      <div class="cartao">
+        <div id="formas"></div>
+        <div id="detalhePagamento" class="detalhe-pag"></div>
+      </div>
+
+      <div class="cartao">
+        <div class="totais" id="totais"></div>
+      </div>
+
+      <div class="cartao">
+        <label class="marcar">
+          <input type="checkbox" id="maiorIdade">
+          <span>Tenho 18 anos ou mais. Sei que o entregador pode pedir um documento na entrega de bebidas alcoólicas.</span>
+        </label>
+      </div>
+      <div id="erroEnvio" class="aviso erro oculto"></div>
+    </section>
+
+    <!-- Acompanhar -->
+    <section id="telaAcompanhar" class="oculto">
+      <h2 class="secao">Seu pedido</h2>
+      <div class="cartao">
+        <div id="acompanhamento"></div>
+      </div>
+      <div class="cartao" id="resumoPedido"></div>
+      <button class="botao-sec" id="novoPedido">Fazer outro pedido</button>
+    </section>
+
+    <div class="rodape" id="rodape"></div>
+  </main>
+
+  <div class="barra oculto" id="barra">
+    <button id="botaoBarra"><span id="textoBarra">Ver sacola</span><span id="valorBarra"></span></button>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import {
+      getFirestore, doc, getDoc, onSnapshot, writeBatch, collection, serverTimestamp,
+    } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+    // ===================== CONFIGURE AQUI =====================
+    const CONFIG = {
+      firebase: {
+        apiKey: 'AIzaSyBtwyD9CNGtIdIuJAyvLR-mFZWoETZDCSg',
+        authDomain: 'app-vendas-52770.firebaseapp.com',
+        projectId: 'app-vendas-52770',
+        appId: '1:437258498696:web:6ecfbc1c7e1b99ea30653d',
+        messagingSenderId: '437258498696',
+      },
+      // Chave do site do reCAPTCHA v3 (App Check). Vazio = sem App Check.
+      recaptchaSiteKey: '',
+    };
+    // ===========================================================
+
+    const app = initializeApp(CONFIG.firebase);
+    if (CONFIG.recaptchaSiteKey) {
+      const { initializeAppCheck, ReCaptchaV3Provider } = await import(
+        'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js'
+      );
+      initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(CONFIG.recaptchaSiteKey),
+        isTokenAutoRefreshEnabled: true,
+      });
+    }
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    // Testes locais (firebase emulators:start): usa os emuladores.
+    if (['localhost', '127.0.0.1'].includes(location.hostname)) {
+      const { connectFirestoreEmulator } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+      const { connectAuthEmulator } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+      connectFirestoreEmulator(db, '127.0.0.1', 8080);
+      connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+    }
+
+    const $ = (id) => document.getElementById(id);
+    const moeda = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const centavos = (v) => Math.round(v * 100);
+    const normalizar = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const el = (tag, attrs = {}, ...filhos) => {
+      const e = document.createElement(tag);
+      for (const [k, v] of Object.entries(attrs)) {
+        if (k === 'class') e.className = v;
+        else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+        else if (v !== false && v != null) e.setAttribute(k, v === true ? '' : v);
+      }
+      for (const f of filhos.flat()) {
+        if (f == null || f === false) continue;
+        e.append(f instanceof Node ? f : document.createTextNode(String(f)));
+      }
+      return e;
+    };
+    const lerValor = (t) => {
+      let s = String(t || '').trim().replace(/R\$|\s/g, '');
+      if (!s) return null;
+      if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+      const n = Number(s);
+      return Number.isFinite(n) ? n : null;
+    };
+    const guardar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} };
+    const ler = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch (_) { return null; } };
+
+    // Endereço: /pedir/<link-da-loja>?pedido=<id>
+    const partes = location.pathname.split('/').filter(Boolean);
+    const slug = (partes[0] === 'pedir' ? partes[1] : partes[0]) || new URLSearchParams(location.search).get('l') || '';
+    const pedidoNaUrl = new URLSearchParams(location.search).get('pedido');
+
+    const estado = {
+      lojaId: null,
+      loja: null,
+      produtos: [],
+      sacola: ler('sacola:' + slug) || {},
+      categoria: null,
+      busca: '',
+      forma: null,
+      comprovante: null,
+      uid: null,
+    };
+
+    function mostrar(tela) {
+      for (const t of ['telaCardapio', 'telaFinalizar', 'telaAcompanhar']) {
+        $(t).classList.toggle('oculto', t !== tela);
+      }
+      atualizarBarra();
+      window.scrollTo(0, 0);
+    }
+
+    function erroGeral(texto) {
+      $('mensagem').textContent = texto;
+      $('mensagem').className = 'aviso erro';
+      $('nomeLoja').textContent = 'Loja não encontrada';
+    }
+
+    function aplicarLoja(l) {
+      estado.loja = l;
+      document.title = (l.nome || 'Loja') + ' — fazer pedido';
+      $('nomeLoja').textContent = l.nome || 'Loja';
+      if (l.cor) {
+        document.documentElement.style.setProperty('--cor', l.cor);
+        document.querySelector('meta[name=theme-color]').setAttribute('content', l.cor);
+      }
+      const logo = $('logo');
+      logo.replaceChildren(
+        l.logo
+          ? el('img', { src: 'data:image/png;base64,' + l.logo, alt: '' })
+          : el('div', { class: 'inicial' }, (l.nome || 'L').charAt(0).toUpperCase()),
+      );
+      const aberta = lojaAceitaPedidos();
+      $('situacao').replaceChildren(
+        el('span', { class: 'pilula ' + (aberta ? 'aberta' : 'fechada') }, aberta ? 'Aberta' : 'Fechada'),
+      );
+      $('horario').textContent = l.horario || '';
+      $('avisoFechada').classList.toggle('oculto', aberta);
+      $('rodape').replaceChildren(
+        l.telefone ? el('div', {}, 'Dúvidas? ', el('a', { href: whatsLoja(''), target: '_blank', rel: 'noopener' }, 'Fale com a loja no WhatsApp')) : '',
+        l.endereco ? el('div', {}, l.endereco) : '',
+      );
+      atualizarBarra();
+    }
+
+    const lojaAceitaPedidos = () => !!(estado.loja && estado.loja.ativa && estado.loja.aberta);
+
+    function whatsLoja(texto) {
+      const d = String(estado.loja?.telefone || '').replace(/\D/g, '');
+      const fone = d.length === 10 || d.length === 11 ? '55' + d : d;
+      return 'https://wa.me/' + fone + (texto ? '?text=' + encodeURIComponent(texto) : '');
+    }
+
+    // ---------------- Cardápio ----------------
+    function quantidade(id) { return estado.sacola[id] || 0; }
+    function alterar(p, delta) {
+      const nova = Math.max(0, Math.min(p.maximo || 0, quantidade(p.id) + delta));
+      if (nova === 0) delete estado.sacola[p.id]; else estado.sacola[p.id] = nova;
+      guardar('sacola:' + slug, estado.sacola);
+      desenharCardapio();
+      if (!$('telaFinalizar').classList.contains('oculto')) desenharFinalizar();
+      atualizarBarra();
+    }
+
+    function itensSacola() {
+      const porId = Object.fromEntries(estado.produtos.map((p) => [p.id, p]));
+      const itens = [];
+      for (const [id, q] of Object.entries(estado.sacola)) {
+        const p = porId[id];
+        if (!p || !p.disponivel || q <= 0) continue;
+        itens.push({ p, q: Math.min(q, p.maximo || 0) });
+      }
+      return itens.filter((i) => i.q > 0);
+    }
+    const subtotalCentavos = () => itensSacola().reduce((s, i) => s + centavos(i.p.preco) * i.q, 0);
+    const taxaCentavos = () => centavos(estado.loja?.taxaEntrega || 0);
+
+    function desenharCardapio() {
+      const busca = normalizar(estado.busca);
+      const cats = [...new Set(estado.produtos.map((p) => p.categoria))];
+      $('categorias').replaceChildren(
+        el('button', { class: 'chip' + (estado.categoria ? '' : ' ativo'), onclick: () => { estado.categoria = null; desenharCardapio(); } }, 'Tudo'),
+        ...cats.map((c) => el('button', {
+          class: 'chip' + (estado.categoria === c ? ' ativo' : ''),
+          onclick: () => { estado.categoria = c; desenharCardapio(); },
+        }, c)),
+      );
+      const visiveis = estado.produtos.filter((p) =>
+        (!estado.categoria || p.categoria === estado.categoria) &&
+        (!busca || normalizar(p.nome + ' ' + p.categoria).includes(busca)));
+      const lista = $('lista');
+      lista.replaceChildren();
+      if (!visiveis.length) {
+        lista.append(el('p', { class: 'det' }, estado.produtos.length ? 'Nenhum produto encontrado.' : 'O cardápio ainda está vazio.'));
+        return;
+      }
+      let atual = null;
+      for (const p of visiveis) {
+        if (p.categoria !== atual) {
+          atual = p.categoria;
+          lista.append(el('h2', { class: 'secao' }, atual));
+        }
+        const q = quantidade(p.id);
+        lista.append(el('div', { class: 'item' + (p.disponivel ? '' : ' esgotado') },
+          el('div', {},
+            el('div', { class: 'nome' }, p.nome),
+            p.unidade && p.unidade !== 'un' ? el('div', { class: 'det' }, p.unidade) : '',
+            el('div', { class: 'preco' }, moeda(p.preco)),
+          ),
+          p.disponivel
+            ? el('div', { class: 'qtd' },
+                q > 0 ? el('button', { 'aria-label': 'Remover', onclick: () => alterar(p, -1) }, '−') : '',
+                q > 0 ? el('span', {}, q) : '',
+                el('button', { class: 'mais', 'aria-label': 'Adicionar', disabled: !lojaAceitaPedidos() || q >= p.maximo, onclick: () => alterar(p, 1) }, '+'))
+            : el('div', { class: 'qtd det' }, 'Esgotado'),
+        ));
+      }
+    }
+
+    function atualizarBarra() {
+      const n = itensSacola().reduce((s, i) => s + i.q, 0);
+      const barra = $('barra');
+      const naFinalizar = !$('telaFinalizar').classList.contains('oculto');
+      const naCardapio = !$('telaCardapio').classList.contains('oculto');
+      if (naCardapio) {
+        barra.classList.toggle('oculto', n === 0);
+        $('textoBarra').textContent = `Ver sacola (${n})`;
+        $('valorBarra').textContent = moeda(subtotalCentavos() / 100);
+        $('botaoBarra').disabled = !lojaAceitaPedidos();
+      } else if (naFinalizar) {
+        barra.classList.remove('oculto');
+        $('textoBarra').textContent = 'Enviar pedido';
+        $('valorBarra').textContent = moeda((subtotalCentavos() + taxaCentavos()) / 100);
+        $('botaoBarra').disabled = !!motivoBloqueio();
+      } else {
+        barra.classList.add('oculto');
+      }
+    }
+
+    // ---------------- Finalizar ----------------
+    function desenharFinalizar() {
+      const itens = itensSacola();
+      const sacola = $('sacola');
+      sacola.replaceChildren();
+      if (!itens.length) {
+        sacola.append(el('p', {}, 'Sua sacola está vazia.'));
+      }
+      for (const { p, q } of itens) {
+        sacola.append(el('div', { class: 'item', style: 'border:0;padding:6px 0;margin:0' },
+          el('div', {}, el('div', { class: 'nome' }, p.nome), el('div', { class: 'det' }, `${q} × ${moeda(p.preco)}`)),
+          el('div', { class: 'qtd' },
+            el('button', { onclick: () => alterar(p, -1) }, '−'),
+            el('span', {}, q),
+            el('button', { class: 'mais', disabled: q >= p.maximo, onclick: () => alterar(p, 1) }, '+')),
+        ));
+      }
+      // Formas de pagamento aceitas pela loja.
+      const formas = estado.loja.formas || [];
+      if (!formas.includes(estado.forma)) estado.forma = null;
+      $('formas').replaceChildren(...formas.map((f) => el('label', { class: 'opcao' + (estado.forma === f ? ' marcada' : '') },
+        el('input', { type: 'radio', name: 'forma', value: f, checked: estado.forma === f, onchange: () => { estado.forma = f; desenharFinalizar(); } }),
+        el('span', {}, f === 'Pix' ? 'Pix (pague agora e anexe o comprovante)' : f === 'Dinheiro' ? 'Dinheiro na entrega' : f + ' na entrega (maquininha)'),
+      )));
+      desenharPagamento();
+      desenharTotais();
+      atualizarBarra();
+    }
+
+    function desenharPagamento() {
+      const d = $('detalhePagamento');
+      // Lê o que já foi digitado antes de redesenhar.
+      const precisa = $('precisaTroco')?.checked ?? false;
+      const valorAnterior = $('trocoPara')?.value ?? '';
+      d.replaceChildren();
+      const total = (subtotalCentavos() + taxaCentavos()) / 100;
+      if (estado.forma === 'Pix') {
+        const chave = estado.loja.chavePix || '';
+        d.append(
+          el('p', {}, 'Faça o Pix de ', el('strong', {}, moeda(total)), ' para a chave abaixo:'),
+          chave
+            ? el('div', { class: 'chave' }, el('span', { style: 'flex:1' }, chave),
+                el('button', { onclick: async (ev) => {
+                  try { await navigator.clipboard.writeText(chave); ev.target.textContent = 'Copiada!'; } catch (_) {}
+                } }, 'Copiar'))
+            : el('p', { class: 'obrigatorio' }, 'A loja ainda não cadastrou a chave Pix. Escolha outra forma ou fale com a loja.'),
+          el('div', { class: 'anexo' },
+            el('p', { class: estado.comprovante ? '' : 'obrigatorio' },
+              estado.comprovante ? 'Comprovante anexado ✓' : 'Anexe o comprovante do Pix para liberar o envio do pedido.'),
+            el('label', { class: 'botao-sec', style: 'display:inline-block' },
+              estado.comprovante ? 'Trocar comprovante' : 'Anexar comprovante',
+              el('input', { type: 'file', accept: 'image/*', style: 'display:none', onchange: anexarComprovante })),
+            estado.comprovante ? el('img', { src: 'data:image/jpeg;base64,' + estado.comprovante, alt: 'Comprovante' }) : '',
+          ),
+        );
+      } else if (estado.forma === 'Dinheiro') {
+        d.append(
+          el('label', { class: 'marcar' },
+            el('input', { type: 'checkbox', id: 'precisaTroco', checked: precisa, onchange: desenharPagamento }),
+            el('span', {}, 'Preciso de troco')),
+        );
+        if (precisa) {
+          const campo = el('input', { class: 'campo-input', id: 'trocoPara', inputmode: 'decimal', placeholder: 'Ex.: 100,00', value: valorAnterior,
+            oninput: () => { desenharTroco(); atualizarBarra(); } });
+          d.append(el('label', { class: 'campo', for: 'trocoPara' }, 'Troco para quanto?'), campo, el('p', { id: 'textoTroco', class: 'det' }));
+          desenharTroco();
+        }
+      } else if (estado.forma) {
+        d.append(el('p', {}, `O entregador leva a maquininha. Pagamento no ${estado.forma.toLowerCase()} na entrega.`));
+      }
+    }
+
+    function desenharTroco() {
+      const t = $('textoTroco');
+      if (!t) return;
+      const v = lerValor($('trocoPara').value);
+      const total = subtotalCentavos() + taxaCentavos();
+      if (v == null) { t.textContent = ''; return; }
+      const troco = centavos(v) - total;
+      t.textContent = troco >= 0 ? `Seu troco: ${moeda(troco / 100)}` : 'O valor é menor que o total do pedido.';
+    }
+
+    function desenharTotais() {
+      const sub = subtotalCentavos(), taxa = taxaCentavos();
+      const minimo = centavos(estado.loja.pedidoMinimo || 0);
+      $('totais').replaceChildren(
+        el('div', {}, el('span', {}, 'Produtos'), el('span', {}, moeda(sub / 100))),
+        el('div', {}, el('span', {}, 'Taxa de entrega'), el('span', {}, moeda(taxa / 100))),
+        el('div', { class: 'total' }, el('span', {}, 'Total'), el('span', {}, moeda((sub + taxa) / 100))),
+        minimo > 0 && sub < minimo ? el('p', { class: 'obrigatorio' }, `Pedido mínimo: ${moeda(minimo / 100)} em produtos.`) : '',
+      );
+    }
+
+    async function anexarComprovante(ev) {
+      const arquivo = ev.target.files && ev.target.files[0];
+      if (!arquivo) return;
+      try {
+        estado.comprovante = await reduzirImagem(arquivo);
+      } catch (e) {
+        alert('Não foi possível ler a imagem. Envie uma foto ou print do comprovante (JPG ou PNG).');
+      }
+      desenharPagamento();
+      atualizarBarra();
+    }
+
+    // Reduz a foto/print para caber no banco (JPEG em base64, < 880 KB).
+    async function reduzirImagem(arquivo) {
+      const url = URL.createObjectURL(arquivo);
+      try {
+        const img = await new Promise((ok, falha) => {
+          const i = new Image();
+          i.onload = () => ok(i);
+          i.onerror = falha;
+          i.src = url;
+        });
+        for (const [lado, qualidade] of [[1280, 0.72], [1000, 0.6], [800, 0.5]]) {
+          const escala = Math.min(1, lado / Math.max(img.width, img.height));
+          const c = document.createElement('canvas');
+          c.width = Math.round(img.width * escala);
+          c.height = Math.round(img.height * escala);
+          const ctx = c.getContext('2d');
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, c.width, c.height);
+          ctx.drawImage(img, 0, 0, c.width, c.height);
+          const b64 = c.toDataURL('image/jpeg', qualidade).split(',')[1];
+          if (b64.length < 880000) return b64;
+        }
+        throw new Error('grande demais');
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    }
+
+    function dadosFormulario() {
+      const v = (id) => $(id).value.trim();
+      return {
+        nome: v('nome'), telefone: v('telefone'), cep: v('cep'), rua: v('rua'), numero: v('numero'),
+        bairro: v('bairro'), cidade: v('cidade'), referencia: v('referencia'), observacao: v('observacao'),
+      };
+    }
+
+    // Motivo que impede o envio (null = pode enviar).
+    function motivoBloqueio() {
+      if (!lojaAceitaPedidos()) return 'A loja está fechada agora.';
+      const itens = itensSacola();
+      if (!itens.length) return 'Sua sacola está vazia.';
+      const sub = subtotalCentavos();
+      const minimo = centavos(estado.loja.pedidoMinimo || 0);
+      if (sub < minimo) return `O pedido mínimo é ${moeda(minimo / 100)} em produtos.`;
+      const f = dadosFormulario();
+      if (!f.nome) return 'Informe seu nome.';
+      if (f.telefone.replace(/\D/g, '').length < 10) return 'Informe seu celular com DDD.';
+      if (!f.rua || !f.numero || !f.bairro) return 'Preencha rua, número e bairro.';
+      if (!estado.forma) return 'Escolha a forma de pagamento.';
+      if (estado.forma === 'Pix') {
+        if (!estado.loja.chavePix) return 'A loja não tem chave Pix cadastrada.';
+        if (!estado.comprovante) return 'Anexe o comprovante do Pix para enviar o pedido.';
+      }
+      if (estado.forma === 'Dinheiro' && $('precisaTroco')?.checked) {
+        const t = lerValor($('trocoPara')?.value);
+        if (t == null || centavos(t) < sub + taxaCentavos()) return 'Informe um valor para troco maior que o total.';
+      }
+      if (!$('maiorIdade').checked) return 'Confirme que você tem 18 anos ou mais.';
+      return null;
+    }
+
+    async function buscarCep() {
+      const cep = $('cep').value.replace(/\D/g, '');
+      if (cep.length !== 8) return;
+      try {
+        const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        const d = await r.json();
+        if (d.erro) return;
+        if (d.logradouro && !$('rua').value) $('rua').value = d.logradouro;
+        if (d.bairro && !$('bairro').value) $('bairro').value = d.bairro;
+        $('cidade').value = d.localidade ? `${d.localidade}/${d.uf}` : '';
+        if (!$('numero').value) $('numero').focus();
+        atualizarBarra();
+      } catch (_) { /* sem internet ou CEP fora do ar: preenche à mão */ }
+    }
+
+    async function garantirLogin() {
+      if (auth.currentUser) return auth.currentUser.uid;
+      const r = await signInAnonymously(auth);
+      return r.user.uid;
+    }
+
+    async function enviar() {
+      const motivo = motivoBloqueio();
+      const erro = $('erroEnvio');
+      if (motivo) {
+        erro.textContent = motivo;
+        erro.classList.remove('oculto');
+        return;
+      }
+      erro.classList.add('oculto');
+      const botao = $('botaoBarra');
+      botao.disabled = true;
+      $('textoBarra').textContent = 'Enviando…';
+      try {
+        const uid = await garantirLogin();
+        const f = dadosFormulario();
+        const itens = itensSacola();
+        const sub = subtotalCentavos(), taxa = taxaCentavos();
+        const troco = estado.forma === 'Dinheiro' && $('precisaTroco')?.checked ? lerValor($('trocoPara').value) : null;
+        const ref = doc(collection(db, 'lojas', estado.lojaId, 'pedidosOnline'));
+        const batch = writeBatch(db);
+        batch.set(ref, {
+          clienteUid: uid,
+          clienteNome: f.nome,
+          telefone: f.telefone,
+          cep: f.cep,
+          endereco: `${f.rua}, ${f.numero}`.slice(0, 200),
+          bairro: (f.cidade ? `${f.bairro} - ${f.cidade}` : f.bairro).slice(0, 80),
+          referencia: f.referencia,
+          observacao: f.observacao,
+          itens: itens.map(({ p, q }) => ({ produtoId: p.id, nome: p.nome, quantidade: q, precoUnitario: p.preco })),
+          subtotal: sub / 100,
+          taxaEntrega: taxa / 100,
+          total: (sub + taxa) / 100,
+          formaPagamento: estado.forma,
+          trocoPara: troco == null ? null : centavos(troco) / 100,
+          temComprovante: estado.forma === 'Pix',
+          maiorIdade: true,
+          status: 'aguardando',
+          criadoEm: serverTimestamp(),
+        });
+        if (estado.forma === 'Pix') {
+          batch.set(doc(ref, 'anexos', 'comprovante'), { imagem: estado.comprovante, clienteUid: uid });
+        }
+        // Um pedido a cada 2 minutos por cliente (conferido pelas regras).
+        batch.set(doc(db, 'lojas', estado.lojaId, 'limitesOnline', uid), { ultimoPedido: serverTimestamp() });
+        await batch.commit();
+        guardar('dados', { nome: f.nome, telefone: f.telefone, cep: f.cep, rua: f.rua, numero: f.numero, bairro: f.bairro, cidade: f.cidade, referencia: f.referencia });
+        guardar('ultimoPedido:' + slug, { id: ref.id, em: Date.now() });
+        estado.sacola = {};
+        estado.comprovante = null;
+        guardar('sacola:' + slug, {});
+        history.replaceState(null, '', `${location.pathname}?pedido=${ref.id}`);
+        acompanhar(ref.id);
+      } catch (e) {
+        console.error(e);
+        erro.textContent = e && e.code === 'permission-denied'
+          ? 'Não foi possível enviar o pedido. Confira se a loja está aberta e aguarde 2 minutos entre um pedido e outro.'
+          : 'Não foi possível enviar o pedido. Verifique sua internet e tente de novo.';
+        erro.classList.remove('oculto');
+        atualizarBarra();
+      }
+    }
+
+    // ---------------- Acompanhar ----------------
+    const ETAPAS = [
+      ['aguardando', 'Pedido enviado — aguardando a loja'],
+      ['novo', 'Pedido aceito'],
+      ['preparo', 'Em preparo'],
+      ['em_rota', 'Saiu para entrega'],
+      ['entregue', 'Entregue'],
+    ];
+    let pararAcompanhamento = null;
+
+    async function acompanhar(id) {
+      mostrar('telaAcompanhar');
+      $('acompanhamento').replaceChildren(el('p', {}, 'Carregando…'));
+      try {
+        await garantirLogin();
+      } catch (_) {}
+      if (pararAcompanhamento) pararAcompanhamento();
+      pararAcompanhamento = onSnapshot(doc(db, 'lojas', estado.lojaId, 'pedidosOnline', id), (s) => {
+        if (!s.exists()) {
+          $('acompanhamento').replaceChildren(el('p', {}, 'Pedido não encontrado.'));
+          return;
+        }
+        desenharAcompanhamento(id, s.data());
+      }, () => {
+        $('acompanhamento').replaceChildren(el('p', {},
+          'Não foi possível abrir este pedido neste aparelho. Use o mesmo celular em que o pedido foi feito ou fale com a loja.'));
+      });
+    }
+
+    function desenharAcompanhamento(id, p) {
+      const codigo = id.slice(0, 6).toUpperCase();
+      const status = p.status === 'concluido' ? 'entregue' : p.status;
+      const caixa = $('acompanhamento');
+      if (status === 'recusado' || status === 'cancelado') {
+        caixa.replaceChildren(
+          el('div', { class: 'grande', style: 'color:var(--erro)' }, status === 'recusado' ? 'Pedido recusado' : 'Pedido cancelado'),
+          el('p', {}, `Pedido #${codigo}`),
+          p.motivo ? el('p', {}, 'Motivo: ', p.motivo) : '',
+          estado.loja?.telefone ? el('p', {}, el('a', { href: whatsLoja(`Olá! Sobre o pedido #${codigo}`), target: '_blank', rel: 'noopener' }, 'Falar com a loja')) : '',
+        );
+      } else {
+        const i = Math.max(0, ETAPAS.findIndex(([s]) => s === status));
+        caixa.replaceChildren(
+          el('div', { class: 'grande' }, ETAPAS[i][1]),
+          el('p', { class: 'det' }, `Pedido #${codigo} · esta página atualiza sozinha`),
+          el('ul', { class: 'etapas' }, ETAPAS.map(([, nome], j) =>
+            el('li', { class: j < i || (j === i && i === ETAPAS.length - 1) ? 'feita' : j === i ? 'atual' : '' },
+              el('span', { class: 'bola' }, j < i || (j === i && i === ETAPAS.length - 1) ? '✓' : j + 1), nome))),
+          estado.loja?.telefone ? el('p', {}, el('a', { href: whatsLoja(`Olá! Sobre o pedido #${codigo}`), target: '_blank', rel: 'noopener' }, 'Falar com a loja no WhatsApp')) : '',
+        );
+      }
+      const pag = p.formaPagamento === 'Pix' ? 'Pix (comprovante enviado)'
+        : p.formaPagamento === 'Dinheiro' ? (p.trocoPara ? `Dinheiro — troco para ${moeda(p.trocoPara)}` : 'Dinheiro')
+        : `${p.formaPagamento} na entrega (maquininha)`;
+      $('resumoPedido').replaceChildren(
+        el('div', { class: 'nome' }, p.clienteNome),
+        el('div', { class: 'det' }, `${p.endereco} — ${p.bairro}`),
+        el('div', { style: 'margin-top:10px' }, (p.itens || []).map((it) => el('div', { class: 'det' }, `${it.quantidade}× ${it.nome}`))),
+        el('div', { class: 'totais', style: 'margin-top:10px' },
+          el('div', {}, el('span', {}, 'Taxa de entrega'), el('span', {}, moeda(p.taxaEntrega || 0))),
+          el('div', { class: 'total' }, el('span', {}, 'Total'), el('span', {}, moeda(p.total || 0)))),
+        el('div', { class: 'det', style: 'margin-top:6px' }, 'Pagamento: ' + pag),
+      );
+    }
+
+    // ---------------- Início ----------------
+    function preencherDados() {
+      const d = ler('dados');
+      if (!d) return;
+      for (const k of ['nome', 'telefone', 'cep', 'rua', 'numero', 'bairro', 'cidade', 'referencia']) {
+        if (d[k]) $(k).value = d[k];
+      }
+    }
+
+    function mostrarUltimoPedido() {
+      const u = ler('ultimoPedido:' + slug);
+      const caixa = $('acompanharUltimo');
+      if (!u || Date.now() - u.em > 12 * 3600 * 1000) { caixa.classList.add('oculto'); return; }
+      caixa.replaceChildren('Você tem um pedido recente. ',
+        el('a', { href: `?pedido=${u.id}`, onclick: (e) => { e.preventDefault(); history.replaceState(null, '', `${location.pathname}?pedido=${u.id}`); acompanhar(u.id); } }, 'Acompanhar pedido'));
+      caixa.classList.remove('oculto');
+    }
+
+    async function iniciar() {
+      if (!slug) { erroGeral('Endereço incompleto. Peça à loja o link correto.'); return; }
+      try {
+        const s = await getDoc(doc(db, 'slugs', slug));
+        if (!s.exists()) { erroGeral('Esta loja não foi encontrada. Confira o link.'); return; }
+        estado.lojaId = s.data().lojaId;
+      } catch (e) {
+        console.error(e);
+        erroGeral('Não foi possível carregar a loja. Verifique sua internet.');
+        return;
+      }
+      onAuthStateChanged(auth, (u) => { estado.uid = u ? u.uid : null; });
+
+      let primeiro = true;
+      onSnapshot(doc(db, 'lojasPublicas', estado.lojaId), (s) => {
+        if (!s.exists() || !s.data().ativa) {
+          erroGeral('Esta loja não está recebendo pedidos pela internet.');
+          $('telaCardapio').classList.add('oculto');
+          return;
+        }
+        aplicarLoja(s.data());
+        desenharCardapio();
+        if (!$('telaFinalizar').classList.contains('oculto')) desenharFinalizar();
+        if (primeiro) {
+          primeiro = false;
+          if (pedidoNaUrl) acompanhar(pedidoNaUrl);
+          else { mostrar('telaCardapio'); mostrarUltimoPedido(); }
+        }
+      }, () => erroGeral('Não foi possível carregar a loja.'));
+
+      onSnapshot(doc(db, 'lojasPublicas', estado.lojaId, 'cardapio', 'atual'), (s) => {
+        estado.produtos = (s.exists() && s.data().produtos) || [];
+        desenharCardapio();
+        if (!$('telaFinalizar').classList.contains('oculto')) desenharFinalizar();
+        atualizarBarra();
+      });
+    }
+
+    $('busca').addEventListener('input', (e) => { estado.busca = e.target.value; desenharCardapio(); });
+    $('botaoBarra').addEventListener('click', () => {
+      if (!$('telaCardapio').classList.contains('oculto')) {
+        mostrar('telaFinalizar');
+        desenharFinalizar();
+      } else {
+        enviar();
+      }
+    });
+    $('voltarCardapio').addEventListener('click', () => { mostrar('telaCardapio'); desenharCardapio(); });
+    $('novoPedido').addEventListener('click', () => {
+      if (pararAcompanhamento) pararAcompanhamento();
+      history.replaceState(null, '', location.pathname);
+      mostrar('telaCardapio');
+      desenharCardapio();
+      mostrarUltimoPedido();
+    });
+    $('cep').addEventListener('input', (e) => {
+      const d = e.target.value.replace(/\D/g, '').slice(0, 8);
+      e.target.value = d.length > 5 ? d.slice(0, 5) + '-' + d.slice(5) : d;
+      if (d.length === 8) buscarCep();
+    });
+    for (const id of ['nome', 'telefone', 'rua', 'numero', 'bairro', 'maiorIdade']) {
+      $(id).addEventListener('input', atualizarBarra);
+      $(id).addEventListener('change', atualizarBarra);
+    }
+    preencherDados();
+    iniciar();
+  </script>
+</body>
+</html>

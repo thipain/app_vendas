@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../../core/dinheiro.dart';
 import '../../core/formatters.dart';
+import '../../data/alarme_online.dart';
+import '../../data/config_repository.dart';
 import '../../data/dados.dart';
+import '../../data/loja_online_repository.dart';
 import '../../data/pedido_repository.dart';
 import '../../data/venda_repository.dart';
+import '../../models/config_loja.dart';
 import '../../models/pedido.dart';
+import '../../models/pedido_online.dart';
 import '../../models/venda.dart';
 import '../../widgets/confirmar.dart';
 import '../../widgets/largura_maxima.dart';
@@ -13,6 +18,7 @@ import '../../widgets/mensagens.dart';
 import 'delivery_comum.dart';
 import 'pedido_detalhe_page.dart';
 import 'pedido_form_page.dart';
+import 'pedido_online_widgets.dart';
 
 /// Painel do delivery: pedidos em andamento separados por etapa (colunas no
 /// PC, abas no celular) e o acerto do dinheiro com cada entregador.
@@ -98,84 +104,259 @@ class _PedidosPageState extends State<PedidosPage> {
 
   @override
   Widget build(BuildContext context) {
-    final desktop = MediaQuery.sizeOf(context).width >= larguraDesktop;
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.add),
         label: const Text('Novo pedido'),
         onPressed: _novo,
       ),
-      body: StreamBuilder<List<Pedido>>(
-        stream: _stream,
-        builder: (context, snap) {
-          if (snap.hasError) {
-            return Center(child: Text('Erro ao carregar: ${snap.error}'));
-          }
-          if (!snap.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final todos = snap.data!;
-          final porStatus = {
-            for (final (s, _, _) in _colunas)
-              s: todos.where((p) => p.status == s).toList(),
-          };
-          if (desktop) {
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: ValueListenableBuilder<ConfigLoja>(
+        valueListenable: ConfigRepository.atual,
+        builder: (context, config, _) => ValueListenableBuilder(
+          valueListenable: AlarmeOnline.aguardando,
+          builder: (context, online, _) {
+            final comOnline = config.lojaOnlineAtiva || online.isNotEmpty;
+            return Column(
               children: [
-                for (final (s, titulo, icone) in _colunas)
-                  Expanded(
-                    child: _Coluna(
-                      titulo: titulo,
-                      icone: icone,
-                      cor: corStatus(context, s),
-                      pedidos: porStatus[s]!,
-                      onAbrir: _abrir,
-                      onAcertar: s == Pedido.entregue ? _acertar : null,
-                    ),
-                  ),
+                if (config.lojaOnlineAtiva) const _BarraLojaOnline(),
+                Expanded(child: _quadro(context, comOnline ? online : null)),
               ],
             );
-          }
-          return DefaultTabController(
-            length: _colunas.length,
-            child: Column(
-              children: [
-                TabBar(
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  tabs: [
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Colunas (PC) ou abas (celular). [online] null = loja online desligada.
+  Widget _quadro(BuildContext context, List<PedidoOnline>? online) {
+    final desktop = MediaQuery.sizeOf(context).width >= larguraDesktop;
+    return StreamBuilder<List<Pedido>>(
+      stream: _stream,
+      builder: (context, snap) {
+        if (snap.hasError) {
+          return Center(child: Text('Erro ao carregar: ${snap.error}'));
+        }
+        if (!snap.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final todos = snap.data!;
+        final porStatus = {
+          for (final (s, _, _) in _colunas)
+            s: todos.where((p) => p.status == s).toList(),
+        };
+        final colunaOnline = online == null
+            ? null
+            : _ColunaOnline(
+                pedidos: online,
+                cabecalho: desktop,
+                onAceito: _abrir,
+              );
+        if (desktop) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (colunaOnline != null) Expanded(child: colunaOnline),
+              for (final (s, titulo, icone) in _colunas)
+                Expanded(
+                  child: _Coluna(
+                    titulo: titulo,
+                    icone: icone,
+                    cor: corStatus(context, s),
+                    pedidos: porStatus[s]!,
+                    onAbrir: _abrir,
+                    onAcertar: s == Pedido.entregue ? _acertar : null,
+                  ),
+                ),
+            ],
+          );
+        }
+        return DefaultTabController(
+          length: _colunas.length + (colunaOnline == null ? 0 : 1),
+          child: Column(
+            children: [
+              TabBar(
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                tabs: [
+                  if (online != null)
+                    Tab(
+                      icon: Badge(
+                        isLabelVisible: online.isNotEmpty,
+                        label: Text('${online.length}'),
+                        child: const Icon(Icons.public),
+                      ),
+                      text: 'Online',
+                    ),
+                  for (final (s, titulo, icone) in _colunas)
+                    Tab(
+                      icon: Badge(
+                        isLabelVisible: porStatus[s]!.isNotEmpty,
+                        label: Text('${porStatus[s]!.length}'),
+                        child: Icon(icone),
+                      ),
+                      text: titulo,
+                    ),
+                ],
+              ),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    ?colunaOnline,
                     for (final (s, titulo, icone) in _colunas)
-                      Tab(
-                        icon: Badge(
-                          isLabelVisible: porStatus[s]!.isNotEmpty,
-                          label: Text('${porStatus[s]!.length}'),
-                          child: Icon(icone),
-                        ),
-                        text: titulo,
+                      _Coluna(
+                        titulo: titulo,
+                        icone: icone,
+                        cor: corStatus(context, s),
+                        pedidos: porStatus[s]!,
+                        onAbrir: _abrir,
+                        onAcertar: s == Pedido.entregue ? _acertar : null,
+                        cabecalho: false,
                       ),
                   ],
                 ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Abrir/fechar a loja online e silenciar o alarme.
+class _BarraLojaOnline extends StatelessWidget {
+  const _BarraLojaOnline();
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    return Material(
+      color: t.colorScheme.surfaceContainerHigh,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        child: StreamBuilder<bool>(
+          stream: LojaOnlineRepository.watchAberta(),
+          builder: (context, snap) {
+            final aberta = snap.data ?? false;
+            return Row(
+              children: [
+                Icon(
+                  Icons.public,
+                  color: aberta ? Colors.green.shade700 : t.colorScheme.outline,
+                ),
+                const SizedBox(width: 8),
                 Expanded(
-                  child: TabBarView(
-                    children: [
-                      for (final (s, titulo, icone) in _colunas)
-                        _Coluna(
-                          titulo: titulo,
-                          icone: icone,
-                          cor: corStatus(context, s),
-                          pedidos: porStatus[s]!,
-                          onAbrir: _abrir,
-                          onAcertar: s == Pedido.entregue ? _acertar : null,
-                          cabecalho: false,
-                        ),
-                    ],
+                  child: Text(
+                    aberta
+                        ? 'Loja online ABERTA — recebendo pedidos'
+                        : 'Loja online fechada',
+                    style: t.textTheme.titleSmall,
                   ),
                 ),
+                ValueListenableBuilder<bool>(
+                  valueListenable: AlarmeOnline.silenciado,
+                  builder: (context, mudo, _) => IconButton(
+                    tooltip: mudo ? 'Ligar o alarme' : 'Silenciar o alarme',
+                    icon: Icon(
+                      mudo
+                          ? Icons.notifications_off_outlined
+                          : Icons.notifications_active_outlined,
+                    ),
+                    onPressed: () => AlarmeOnline.silenciado.value = !mudo,
+                  ),
+                ),
+                Switch(
+                  value: aberta,
+                  onChanged: snap.hasData
+                      ? (v) => executar(
+                          context,
+                          () => LojaOnlineRepository.definirAberta(v),
+                          sucesso: v
+                              ? 'Loja online aberta.'
+                              : 'Loja online fechada.',
+                        )
+                      : null,
+                ),
               ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+/// Pedidos da loja online esperando a loja aceitar ou recusar.
+class _ColunaOnline extends StatelessWidget {
+  final List<PedidoOnline> pedidos;
+  final bool cabecalho;
+  final ValueChanged<String> onAceito;
+
+  const _ColunaOnline({
+    required this.pedidos,
+    required this.cabecalho,
+    required this.onAceito,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    final cor = Colors.orange.shade800;
+    return Container(
+      margin: cabecalho ? const EdgeInsets.all(6) : EdgeInsets.zero,
+      decoration: cabecalho
+          ? BoxDecoration(
+              color: pedidos.isEmpty
+                  ? t.colorScheme.surfaceContainerLow
+                  : cor.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+            )
+          : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (cabecalho)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+              child: Row(
+                children: [
+                  Icon(Icons.public, color: cor, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Online — responder',
+                      style: t.textTheme.titleSmall?.copyWith(color: cor),
+                    ),
+                  ),
+                  CircleAvatar(
+                    radius: 12,
+                    backgroundColor: cor.withValues(alpha: 0.15),
+                    child: Text(
+                      '${pedidos.length}',
+                      style: t.textTheme.labelSmall?.copyWith(color: cor),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          );
-        },
+          Expanded(
+            child: pedidos.isEmpty
+                ? Center(
+                    child: Text(
+                      'Nenhum pedido online esperando',
+                      style: t.textTheme.bodySmall,
+                    ),
+                  )
+                : ListView(
+                    padding: const EdgeInsets.fromLTRB(8, 8, 8, 88),
+                    children: [
+                      for (final p in pedidos)
+                        CartaoPedidoOnline(pedido: p, onAceito: onAceito),
+                    ],
+                  ),
+          ),
+        ],
       ),
     );
   }

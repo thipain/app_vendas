@@ -17,6 +17,7 @@ import '../../widgets/foto_produto.dart';
 import '../../widgets/largura_maxima.dart';
 import '../../widgets/sync_status_icon.dart';
 import '../calculadora/calculadora_page.dart';
+import '../delivery/pedido_online_widgets.dart';
 import 'modulos.dart';
 
 /// Estrutura principal: menu lateral agrupado (fixo no PC, gaveta no
@@ -195,6 +196,8 @@ class _AppShellState extends State<AppShell> {
       body: Column(
         children: [
           const FaixaAvisos(),
+          if (_atual.id != 'delivery')
+            FaixaPedidosOnline(onAbrir: () => _abrir('delivery')),
           Expanded(
             child: Row(
               children: [

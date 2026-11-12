@@ -6,4 +6,7 @@ class AppConfig {
 
   /// Se o texto da Release contiver esta marcação, a atualização é obrigatória.
   static const marcadorAtualizacaoObrigatoria = '[obrigatoria]';
+
+  /// Endereço da loja online de cada adega: `<base>/<link da loja>`.
+  static const urlLojaOnline = 'https://fastvendas.web.app/pedir';
 }

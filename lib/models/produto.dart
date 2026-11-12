@@ -17,6 +17,9 @@ class Produto {
 
   final bool ativo;
 
+  /// Aparece no cardápio da loja online (quando a loja online está ativa).
+  final bool naLojaOnline;
+
   /// true enquanto a última alteração ainda não foi enviada ao servidor.
   final bool pendente;
 
@@ -31,6 +34,7 @@ class Produto {
     this.estoqueMinimo = 0,
     this.unidade = 'un',
     this.ativo = true,
+    this.naLojaOnline = true,
     this.pendente = false,
   });
 
@@ -52,6 +56,7 @@ class Produto {
       estoqueMinimo: (d['estoqueMinimo'] as num?)?.toInt() ?? 0,
       unidade: d['unidade'] as String? ?? 'un',
       ativo: d['ativo'] as bool? ?? true,
+      naLojaOnline: d['naLojaOnline'] as bool? ?? true,
       pendente: doc.metadata.hasPendingWrites,
     );
   }
@@ -68,6 +73,7 @@ class Produto {
     'estoqueMinimo': estoqueMinimo,
     'unidade': unidade,
     'ativo': ativo,
+    'naLojaOnline': naLojaOnline,
   };
 
   Produto copyWith({String? id, int? estoque, double? custo}) => Produto(
@@ -81,6 +87,7 @@ class Produto {
     estoqueMinimo: estoqueMinimo,
     unidade: unidade,
     ativo: ativo,
+    naLojaOnline: naLojaOnline,
   );
 
   /// Dados para a auditoria (sem a foto).
@@ -93,5 +100,6 @@ class Produto {
     'estoqueMinimo': estoqueMinimo,
     'unidade': unidade,
     'ativo': ativo,
+    'naLojaOnline': naLojaOnline,
   };
 }

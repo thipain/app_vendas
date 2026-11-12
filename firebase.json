@@ -27,6 +27,9 @@
     "site": "fastvendas",
     "public": "site",
     "cleanUrls": true,
+    "rewrites": [
+      { "source": "/pedir/**", "destination": "/pedir/index.html" }
+    ],
     "ignore": [
       "**/.*"
     ]

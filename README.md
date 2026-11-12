@@ -36,6 +36,15 @@ Sistema completo de PDV para adega/loja, com todas as funções do AdegaPDV (ver
   fez no dia e quanto receber (diária + valor por entrega, definidos pelo
   administrador); **Fechar o dia e zerar** guarda o resumo em "Dias anteriores",
   pode pagar com o dinheiro do caixa (sangria) e começa a contagem de novo
+- **Loja online**: cada adega tem um link (`fastvendas.web.app/pedir/<link>`) e um QR
+  Code para imprimir. O cliente monta o pedido pelo celular, sem instalar nada:
+  cardápio com busca e categorias (só produtos marcados "Mostrar na loja online"),
+  endereço pelo CEP, maioridade e pagamento combinado. **No Pix o pedido só é enviado
+  depois que o cliente anexa o comprovante** (a página bloqueia e as regras do
+  Firestore recusam pedido Pix sem comprovante). A loja recebe com **alarme sonoro**,
+  confere preços e estoque atuais e aceita (vira pedido de delivery) ou recusa com
+  motivo; o cliente acompanha o status pela página. Abrir/fechar a loja online fica no
+  topo da tela Delivery; um pedido a cada 2 minutos por cliente
 - **Entregador (motoboy)**: login opcional criado em Equipe e ligado ao cadastro do motoboy; vê só as entregas
   atribuídas a ele, abre a rota no mapa, confere a maioridade do cliente e marca como
   entregue (registra a localização)

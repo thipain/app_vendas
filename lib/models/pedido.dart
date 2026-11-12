@@ -76,6 +76,10 @@ class Pedido {
   /// Endereço ou coordenada obtidos pelo celular do entregador na entrega.
   final String localEntrega;
   final String? vendaId;
+
+  /// Pedido feito pelo cliente na loja online que originou este (o status
+  /// é copiado para lá, para o cliente acompanhar).
+  final String? pedidoOnlineId;
   final String? motivoCancelamento;
   final bool pendente;
 
@@ -105,6 +109,7 @@ class Pedido {
     this.finalizadoEm,
     this.localEntrega = '',
     this.vendaId,
+    this.pedidoOnlineId,
     this.motivoCancelamento,
     this.pendente = false,
   });
@@ -192,6 +197,7 @@ class Pedido {
       finalizadoEm: data('finalizadoEm'),
       localEntrega: d['localEntrega'] as String? ?? '',
       vendaId: d['vendaId'] as String?,
+      pedidoOnlineId: d['pedidoOnlineId'] as String?,
       motivoCancelamento: d['motivoCancelamento'] as String?,
       pendente: doc.metadata.hasPendingWrites,
     );

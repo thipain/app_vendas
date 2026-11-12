@@ -28,6 +28,16 @@ class ConfigLoja {
   final double diariaMotoboy;
   final double valorPorEntrega;
 
+  /// Loja online: cardápio público e pedidos feitos pelo próprio cliente.
+  final bool lojaOnlineAtiva;
+
+  /// Link da loja (`fastvendas.web.app/pedir/<slug>`).
+  final String slug;
+  final double pedidoMinimo;
+
+  /// Texto livre, ex.: "Todos os dias, das 16h às 2h".
+  final String horarioAtendimento;
+
   const ConfigLoja({
     this.nomeLoja = 'Minha Loja',
     this.nomeSistema = 'App Vendas',
@@ -44,6 +54,10 @@ class ConfigLoja {
     this.formasDelivery = formasDeliveryPadrao,
     this.diariaMotoboy = 0,
     this.valorPorEntrega = 0,
+    this.lojaOnlineAtiva = false,
+    this.slug = '',
+    this.pedidoMinimo = 0,
+    this.horarioAtendimento = '',
   });
 
   static const formasDeliveryPadrao = [
@@ -91,6 +105,10 @@ class ConfigLoja {
           (d['diariaMotoboy'] as num?)?.toDouble() ?? p.diariaMotoboy,
       valorPorEntrega:
           (d['valorPorEntrega'] as num?)?.toDouble() ?? p.valorPorEntrega,
+      lojaOnlineAtiva: d['lojaOnlineAtiva'] as bool? ?? p.lojaOnlineAtiva,
+      slug: s('slug', p.slug),
+      pedidoMinimo: (d['pedidoMinimo'] as num?)?.toDouble() ?? p.pedidoMinimo,
+      horarioAtendimento: s('horarioAtendimento', p.horarioAtendimento),
     );
   }
 
@@ -110,5 +128,9 @@ class ConfigLoja {
     'formasDelivery': formasDelivery,
     'diariaMotoboy': diariaMotoboy,
     'valorPorEntrega': valorPorEntrega,
+    'lojaOnlineAtiva': lojaOnlineAtiva,
+    'slug': slug,
+    'pedidoMinimo': pedidoMinimo,
+    'horarioAtendimento': horarioAtendimento,
   };
 }

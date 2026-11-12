@@ -70,6 +70,49 @@ service cloud.firestore {
       return acessa(loja) && !entregadorNa(loja);
     }
 
+    // Pedido enviado pelo cliente na loja online. Os preços são conferidos de
+    // novo pela loja ao aceitar; aqui valida o formato, a loja aberta, a taxa,
+    // o pedido mínimo, a forma de pagamento e, no Pix, o comprovante anexado
+    // na mesma gravação.
+    function pedidoOnlineValido(loja, id) {
+      let d = request.resource.data;
+      let pub = get(/databases/$(database)/documents/lojasPublicas/$(loja)).data;
+      return logado()
+        && lojaAtiva(loja)
+        && pub.get('ativa', false) == true
+        && pub.get('aberta', false) == true
+        && d.keys().hasOnly(['clienteUid', 'clienteNome', 'telefone', 'cep',
+             'endereco', 'bairro', 'referencia', 'observacao', 'itens',
+             'subtotal', 'taxaEntrega', 'total', 'formaPagamento',
+             'trocoPara', 'temComprovante', 'maiorIdade', 'status',
+             'criadoEm'])
+        && d.clienteUid == request.auth.uid
+        && d.status == 'aguardando'
+        && d.criadoEm == request.time
+        && d.maiorIdade == true
+        && d.clienteNome is string && d.clienteNome.size() > 0
+        && d.clienteNome.size() <= 100
+        && d.telefone is string && d.telefone.size() >= 8
+        && d.telefone.size() <= 30
+        && d.cep is string && d.cep.size() <= 9
+        && d.endereco is string && d.endereco.size() > 0
+        && d.endereco.size() <= 200
+        && d.bairro is string && d.bairro.size() <= 80
+        && d.referencia is string && d.referencia.size() <= 200
+        && d.observacao is string && d.observacao.size() <= 300
+        && d.itens is list && d.itens.size() > 0 && d.itens.size() <= 50
+        && d.subtotal is number && d.total is number
+        && d.subtotal >= pub.get('pedidoMinimo', 0)
+        && d.taxaEntrega == pub.get('taxaEntrega', 0)
+        && d.formaPagamento in pub.get('formas', [])
+        && (d.trocoPara == null || d.trocoPara is number)
+        && (d.formaPagamento != 'Pix'
+            || (d.temComprovante == true
+                && existsAfter(/databases/$(database)/documents/lojas/$(loja)/pedidosOnline/$(id)/anexos/comprovante)))
+        && getAfter(/databases/$(database)/documents/lojas/$(loja)/limitesOnline/$(request.auth.uid))
+             .data.ultimoPedido == request.time;
+    }
+
     match /config/sistema {
       allow read: if logado();
       allow create: if logado()
@@ -152,8 +195,40 @@ service cloud.firestore {
           'produtos', 'clientes', 'vendas', 'caixas', 'movimentosCaixa',
           'comandas', 'movimentosEstoque', 'notasEntrada', 'receitas',
           'operacoesEstoque', 'retiradas', 'ponto', 'pedidos', 'motoboys',
-          'fechamentosMotoboys'
+          'fechamentosMotoboys', 'pedidosOnline'
         ];
+      }
+
+      // Pedidos feitos pelo cliente na loja online (login anônimo). A equipe
+      // lê e altera pela regra geral acima; o cliente só cria e acompanha o
+      // próprio pedido.
+      match /pedidosOnline/{id} {
+        allow create: if pedidoOnlineValido(loja, id);
+        allow get: if logado()
+          && resource.data.clienteUid == request.auth.uid;
+
+        // Comprovante do Pix: enviado pelo cliente junto com o pedido.
+        match /anexos/{anexo} {
+          allow create: if logado() && anexo == 'comprovante'
+            && getAfter(/databases/$(database)/documents/lojas/$(loja)/pedidosOnline/$(id))
+                 .data.clienteUid == request.auth.uid
+            && request.resource.data.keys().hasOnly(['imagem', 'clienteUid'])
+            && request.resource.data.clienteUid == request.auth.uid
+            && request.resource.data.imagem is string
+            && request.resource.data.imagem.size() <= 900000;
+          allow read, delete: if equipeNa(loja);
+        }
+      }
+
+      // Último pedido online de cada cliente: no máximo um a cada 2 minutos.
+      match /limitesOnline/{uid} {
+        allow read: if logado() && request.auth.uid == uid;
+        allow create, update: if logado() && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['ultimoPedido'])
+          && request.resource.data.ultimoPedido == request.time
+          && (resource == null
+              || resource.data.ultimoPedido + duration.value(2, 'm')
+                   < request.time);
       }
 
       // O entregador registra o próprio ponto.
@@ -184,6 +259,27 @@ service cloud.firestore {
             && request.resource.data.imagem.size() <= 900000;
         }
       }
+    }
+
+    // Loja online: dados públicos (cardápio, taxa, formas de pagamento),
+    // lidos pela página do cliente sem login de funcionário.
+    match /lojasPublicas/{loja} {
+      allow read: if true;
+      allow write: if equipeNa(loja) || dono();
+      match /cardapio/{doc} {
+        allow read: if true;
+        allow write: if equipeNa(loja) || dono();
+      }
+    }
+
+    // Link da loja online → id da loja. Só o administrador reserva.
+    match /slugs/{slug} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if (adminNa(request.resource.data.lojaId) || dono())
+        && request.resource.data.keys().hasOnly(['lojaId']);
+      allow delete: if adminNa(resource.data.lojaId) || dono();
+      allow update: if false;
     }
 
     // Consulta "em quais lojas eu trabalho" (collection group de membros).

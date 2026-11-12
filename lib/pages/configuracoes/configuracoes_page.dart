@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+import '../../core/config.dart';
 import '../../core/formatters.dart';
 import '../../core/imagem.dart';
+import '../../core/impressao/qr_loja_pdf.dart';
 import '../../core/regra_exception.dart';
 import '../../data/config_repository.dart';
+import '../../data/loja_online_repository.dart';
 import '../../models/config_loja.dart';
 import '../../models/venda.dart';
 import '../../widgets/foto_produto.dart';
@@ -42,6 +46,17 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
   );
   late final _chavePix = TextEditingController(text: _c.chavePix);
   late final _formasDelivery = {..._c.formasDelivery};
+  late bool _lojaOnline = _c.lojaOnlineAtiva;
+  late final _slug = TextEditingController(
+    text: _c.slug.isNotEmpty
+        ? _c.slug
+        : LojaOnlineRepository.sugerirSlug(_c.nomeLoja),
+  );
+  late final _pedidoMinimo = TextEditingController(
+    text: valorParaCampo(_c.pedidoMinimo),
+  );
+  late final _horario = TextEditingController(text: _c.horarioAtendimento);
+  bool _salvando = false;
   late String _logo = _c.logo;
   bool _carregandoLogo = false;
 
@@ -59,6 +74,9 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
       _corDestaque,
       _taxaEntrega,
       _chavePix,
+      _slug,
+      _pedidoMinimo,
+      _horario,
     ]) {
       c.dispose();
     }
@@ -85,7 +103,7 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
     }
   }
 
-  void _salvar() {
+  Future<void> _salvar() async {
     final nomeLoja = _nomeLoja.text.trim();
     final nomeSistema = _nomeSistema.text.trim();
     final mensagem = _mensagem.text.trim();
@@ -162,7 +180,34 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
       // Editados na tela "Motoboys e diárias".
       diariaMotoboy: ConfigRepository.atual.value.diariaMotoboy,
       valorPorEntrega: ConfigRepository.atual.value.valorPorEntrega,
+      lojaOnlineAtiva: _lojaOnline,
+      slug: _slug.text.trim().toLowerCase(),
+      pedidoMinimo: lerValor(_pedidoMinimo.text) ?? 0,
+      horarioAtendimento: _horario.text.trim(),
     );
+    final antigo = ConfigRepository.atual.value.slug;
+    try {
+      if (nova.pedidoMinimo < 0 || nova.pedidoMinimo > 10000) {
+        throw const RegraException('Pedido mínimo inválido.');
+      }
+      if (nova.horarioAtendimento.length > 120) {
+        throw const RegraException('O horário pode ter até 120 caracteres.');
+      }
+      if (_lojaOnline || nova.slug.isNotEmpty) {
+        LojaOnlineRepository.validarSlug(nova.slug);
+      }
+      if (nova.slug.isNotEmpty && nova.slug != antigo) {
+        // Reservar o link precisa de internet (confere se está livre).
+        setState(() => _salvando = true);
+        await LojaOnlineRepository.reservarSlug(nova.slug, antigo: antigo);
+      }
+    } catch (e) {
+      if (mounted) mostrarErro(context, e);
+      return;
+    } finally {
+      if (mounted) setState(() => _salvando = false);
+    }
+    if (!mounted) return;
     executar(
       context,
       () => ConfigRepository.salvar(nova),
@@ -258,6 +303,90 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
                     style: t.textTheme.bodySmall,
                   ),
                 ]),
+                const TituloSecao('Loja online'),
+                _cartao([
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Receber pedidos pela internet'),
+                    subtitle: const Text(
+                      'O cliente monta o pedido pelo link da loja, sem '
+                      'instalar nada. Os pedidos chegam em Delivery.',
+                    ),
+                    value: _lojaOnline,
+                    onChanged: (v) => setState(() => _lojaOnline = v),
+                  ),
+                  const SizedBox(height: 8),
+                  ListenableBuilder(
+                    listenable: _slug,
+                    builder: (context, _) => TextField(
+                      controller: _slug,
+                      maxLength: 40,
+                      decoration: InputDecoration(
+                        labelText: 'Link da loja',
+                        prefixText: '${AppConfig.urlLojaOnline}/',
+                        helperText:
+                            'Letras minúsculas, números e hífen. Salvar '
+                            'precisa de internet.',
+                      ),
+                    ),
+                  ),
+                  TextField(
+                    controller: _pedidoMinimo,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Pedido mínimo (R\$)',
+                      helperText: '0 = sem pedido mínimo.',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _campo(
+                    _horario,
+                    'Horário de atendimento',
+                    120,
+                    ajuda: 'Ex.: "Todos os dias, das 16h às 2h".',
+                  ),
+                  if (_c.slug.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.copy),
+                          label: const Text('Copiar link'),
+                          onPressed: () async {
+                            await Clipboard.setData(
+                              ClipboardData(
+                                text: LojaOnlineRepository.linkDaLoja(_c.slug),
+                              ),
+                            );
+                            if (context.mounted) {
+                              avisar(context, 'Link da loja copiado.');
+                            }
+                          },
+                        ),
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.qr_code_2),
+                          label: const Text('Imprimir QR Code'),
+                          onPressed: () =>
+                              imprimirQrLoja(
+                                ConfigRepository.atual.value,
+                              ).catchError((Object e) {
+                                if (context.mounted) mostrarErro(context, e);
+                              }),
+                        ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Text(
+                    'Abra e feche a loja online no topo da tela Delivery. '
+                    'Em cada produto escolha se ele aparece na loja online.',
+                    style: t.textTheme.bodySmall,
+                  ),
+                ]),
                 const TituloSecao('Cores'),
                 _cartao([
                   _CampoCor(rotulo: 'Cor principal', controller: _corPrimaria),
@@ -323,7 +452,7 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
                 FilledButton.icon(
                   icon: const Icon(Icons.save_outlined),
                   label: const Text('Salvar configurações'),
-                  onPressed: _salvar,
+                  onPressed: _salvando ? null : _salvar,
                 ),
                 const SizedBox(height: 24),
               ],

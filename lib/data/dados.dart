@@ -2,13 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../core/permissoes.dart';
 import '../core/sessao.dart';
 import '../models/caixa.dart';
 import '../models/motoboy.dart';
 import '../models/produto.dart';
 import '../models/usuario.dart';
+import 'alarme_online.dart';
 import 'caixa_repository.dart';
 import 'config_repository.dart';
+import 'loja_online_repository.dart';
 import 'motoboy_repository.dart';
 import 'estoque.dart';
 import 'produto_repository.dart';
@@ -66,6 +69,8 @@ class Dados {
         onError: (Object e) => debugPrint('Caixa: $e'),
       ),
     );
+    LojaOnlineRepository.iniciar();
+    if (Sessao.instancia.pode(Permissao.delivery)) AlarmeOnline.iniciar();
     _subs.add(
       MotoboyRepository().watchTodos().listen(
         (l) => motoboys.value = l,
@@ -85,6 +90,8 @@ class Dados {
     }
     _subs.clear();
     ConfigRepository.parar();
+    LojaOnlineRepository.parar();
+    AlarmeOnline.parar();
     produtos.value = const [];
     caixaAberto.value = null;
     equipe.value = const [];

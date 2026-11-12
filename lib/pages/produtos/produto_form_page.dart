@@ -52,6 +52,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
     text: '${_original?.estoqueMinimo ?? 0}',
   );
   final _motivo = TextEditingController();
+  late bool _naLojaOnline = _original?.naLojaOnline ?? true;
 
   @override
   void dispose() {
@@ -136,6 +137,7 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
       estoqueMinimo: minimo!,
       unidade: unidade,
       ativo: _original?.ativo ?? true,
+      naLojaOnline: _naLojaOnline,
     );
 
     final ok = _editando
@@ -287,6 +289,16 @@ class _ProdutoFormPageState extends State<ProdutoFormPage> {
                 ),
               ),
             ],
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Mostrar na loja online'),
+              subtitle: const Text(
+                'Aparece no cardápio dos pedidos pela internet (quando tem '
+                'estoque).',
+              ),
+              value: _naLojaOnline,
+              onChanged: (v) => setState(() => _naLojaOnline = v),
+            ),
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: _salvar,

@@ -115,8 +115,37 @@ class PedidoRepository {
     if (nova) 'adicionadoEm': Timestamp.now(),
   };
 
+  /// Pedidos feitos pelo cliente na loja online.
+  static CollectionReference<Map<String, dynamic>> get online =>
+      Banco.col('pedidosOnline');
+
+  /// Copia o status do pedido para o pedido online de origem (o cliente
+  /// acompanha pela página da loja).
+  static void espelharOnline(
+    WriteBatch batch,
+    Pedido pedido,
+    String status, {
+    String? motivo,
+  }) {
+    final id = pedido.pedidoOnlineId;
+    if (id == null) return;
+    batch.update(online.doc(id), {
+      'status': status,
+      'motivo': ?motivo,
+      'atualizadoEm': FieldValue.serverTimestamp(),
+    });
+  }
+
   /// Registra o pedido e baixa o estoque dos itens. Retorna o id.
-  String criar(DadosPedido dados, List<ItemCarrinho> carrinho) {
+  ///
+  /// [pedidoOnlineId] e [comprovantePix] vêm de um pedido da loja online que
+  /// a loja aceitou: o pedido online passa a acompanhar este.
+  String criar(
+    DadosPedido dados,
+    List<ItemCarrinho> carrinho, {
+    String? pedidoOnlineId,
+    String? comprovantePix,
+  }) {
     final d = _validar(dados);
     VendaRepository.validarCarrinho(carrinho);
     final subtotal = carrinho.fold<int>(
@@ -126,10 +155,33 @@ class PedidoRepository {
     _validarTroco(d, subtotal + centavos(d.taxaEntrega));
     final ref = colecao.doc();
     final batch = _db.batch();
+    final comComprovante = (comprovantePix ?? '').isNotEmpty;
+    if (comComprovante) {
+      if (comprovantePix!.length > 900000) {
+        throw const RegraException('O comprovante do Pix é grande demais.');
+      }
+      batch.set(_comprovante(ref.id), {
+        'imagem': comprovantePix,
+        'enviadoPor': {'uid': '', 'nome': 'Cliente (loja online)'},
+        'enviadoEm': Timestamp.now(),
+      });
+    }
+    if (pedidoOnlineId != null) {
+      batch.update(online.doc(pedidoOnlineId), {
+        'status': Pedido.novo,
+        'pedidoId': ref.id,
+        // Total conferido pela loja (preços atuais do cadastro).
+        'subtotal': deCentavos(subtotal),
+        'total': deCentavos(subtotal + centavos(d.taxaEntrega)),
+        'aceitoPor': Sessao.instancia.autor,
+        'atualizadoEm': FieldValue.serverTimestamp(),
+      });
+    }
     batch.set(ref, {
       ...d.toMap(),
       'status': Pedido.novo,
-      'canal': 'balcao',
+      'canal': pedidoOnlineId == null ? 'balcao' : 'online',
+      'pedidoOnlineId': pedidoOnlineId,
       'itens': {
         for (final i in carrinho)
           i.produto.id: {
@@ -141,7 +193,7 @@ class PedidoRepository {
           },
       },
       'pixConfirmado': false,
-      'temComprovante': false,
+      'temComprovante': comComprovante,
       'entregadorId': null,
       'criadoPor': Sessao.instancia.autor,
       'criadoEm': Timestamp.now(),
@@ -312,6 +364,11 @@ class PedidoRepository {
   }) {
     final batch = _db.batch();
     batch.update(colecao.doc(pedido.id), {'status': status, ...extra});
+    // O entregador não tem acesso aos pedidos online; o cliente vê a
+    // entrega quando a loja conclui o pedido.
+    if (status != pedido.status && !Sessao.instancia.atual.isEntregador) {
+      espelharOnline(batch, pedido, status);
+    }
     AuditoriaRepository.noBatch(
       batch,
       'delivery.status',
@@ -475,6 +532,7 @@ class PedidoRepository {
         motivo: 'Cancelamento do pedido: $motivoFinal',
       );
     }
+    espelharOnline(batch, pedido, Pedido.cancelado, motivo: motivoFinal);
     batch.update(colecao.doc(pedido.id), {
       'status': Pedido.cancelado,
       'finalizadoEm': Timestamp.now(),
