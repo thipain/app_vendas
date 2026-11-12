@@ -69,7 +69,7 @@ Future<Uint8List> gerarViaPedidoPdf(Pedido p, ConfigLoja loja) async {
           if (p.referencia.isNotEmpty) t('Ref.: ${p.referencia}'),
           if (p.entregadorNome.isNotEmpty) ...[
             pw.SizedBox(height: 4),
-            linha('Entregador', p.entregadorNome),
+            linha('Motoboy', p.entregadorNome),
           ],
           separador(),
           pw.Row(

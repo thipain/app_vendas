@@ -151,7 +151,8 @@ service cloud.firestore {
         allow read, write: if equipeNa(loja) && colecao in [
           'produtos', 'clientes', 'vendas', 'caixas', 'movimentosCaixa',
           'comandas', 'movimentosEstoque', 'notasEntrada', 'receitas',
-          'operacoesEstoque', 'retiradas', 'ponto', 'pedidos'
+          'operacoesEstoque', 'retiradas', 'ponto', 'pedidos', 'motoboys',
+          'fechamentosMotoboys'
         ];
       }
 

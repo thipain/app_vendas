@@ -137,14 +137,14 @@ class _PedidoDetalhePageState extends State<PedidoDetalhePage> {
   }
 
   Future<void> _despachar(Pedido p, {bool trocar = false}) async {
-    final u = await escolherEntregador(context);
-    if (u == null || !mounted) return;
+    final m = await escolherMotoboy(context);
+    if (m == null || !mounted) return;
     executar(
       context,
-      () => trocar ? _repo.trocarEntregador(p, u) : _repo.despachar(p, u),
+      () => trocar ? _repo.trocarMotoboy(p, m) : _repo.despachar(p, m),
       sucesso: trocar
-          ? 'Entregador trocado para ${u.nome}.'
-          : 'Pedido saiu com ${u.nome}.',
+          ? 'Motoboy trocado para ${m.nome}.'
+          : 'Pedido saiu com ${m.nome}.',
     );
   }
 
@@ -293,7 +293,7 @@ class _PedidoDetalhePageState extends State<PedidoDetalhePage> {
       Pedido.emRota => [
         OutlinedButton.icon(
           icon: const Icon(Icons.swap_horiz),
-          label: const Text('Trocar entregador'),
+          label: const Text('Trocar motoboy'),
           onPressed: () => _despachar(p, trocar: true),
         ),
         FilledButton.icon(
@@ -303,6 +303,11 @@ class _PedidoDetalhePageState extends State<PedidoDetalhePage> {
         ),
       ],
       Pedido.entregue => [
+        OutlinedButton.icon(
+          icon: const Icon(Icons.swap_horiz),
+          label: const Text('Trocar motoboy'),
+          onPressed: () => _despachar(p, trocar: true),
+        ),
         FilledButton.icon(
           icon: const Icon(Icons.point_of_sale),
           label: const Text('Concluir e receber'),
@@ -412,7 +417,7 @@ class _PedidoDetalhePageState extends State<PedidoDetalhePage> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Entregador: ${p.entregadorNome}'
+                                'Motoboy: ${p.entregadorNome}'
                                 '${p.saiuEm == null ? '' : ' · saiu ${_hora.format(p.saiuEm!)}'}'
                                 '${p.entregueEm == null ? '' : ' · entregue ${_hora.format(p.entregueEm!)}'}',
                               ),

@@ -4,10 +4,12 @@ import 'package:flutter/foundation.dart';
 
 import '../core/sessao.dart';
 import '../models/caixa.dart';
+import '../models/motoboy.dart';
 import '../models/produto.dart';
 import '../models/usuario.dart';
 import 'caixa_repository.dart';
 import 'config_repository.dart';
+import 'motoboy_repository.dart';
 import 'estoque.dart';
 import 'produto_repository.dart';
 import 'usuario_repository.dart';
@@ -23,6 +25,9 @@ class Dados {
 
   /// Equipe completa (usada em retiradas, ponto e equipe).
   static final equipe = ValueNotifier<List<Usuario>>(const []);
+
+  /// Motoboys cadastrados na loja (ativos e desativados).
+  static final motoboys = ValueNotifier<List<Motoboy>>(const []);
 
   static final _subs = <StreamSubscription<Object?>>[];
 
@@ -61,6 +66,12 @@ class Dados {
         onError: (Object e) => debugPrint('Caixa: $e'),
       ),
     );
+    _subs.add(
+      MotoboyRepository().watchTodos().listen(
+        (l) => motoboys.value = l,
+        onError: (Object e) => debugPrint('Motoboys: $e'),
+      ),
+    );
     if (Sessao.instancia.isAdmin) {
       ProdutoRepository().removerFotosAntigas().catchError(
         (Object e) => debugPrint('Limpeza de fotos: $e'),
@@ -77,6 +88,7 @@ class Dados {
     produtos.value = const [];
     caixaAberto.value = null;
     equipe.value = const [];
+    motoboys.value = const [];
   }
 
   /// Funcionários ativos (para escolher em retiradas).

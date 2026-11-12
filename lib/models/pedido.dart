@@ -60,6 +60,10 @@ class Pedido {
   final bool pixConfirmado;
   final bool temComprovante;
 
+  /// Motoboy cadastrado que levou o pedido (conta nas entregas do dia).
+  final String? motoboyId;
+
+  /// Login do motoboy no app, quando ele tem (vê o pedido no celular).
   final String? entregadorId;
   final String entregadorNome;
 
@@ -91,6 +95,7 @@ class Pedido {
     this.trocoPara,
     this.pixConfirmado = false,
     this.temComprovante = false,
+    this.motoboyId,
     this.entregadorId,
     this.entregadorNome = '',
     this.criadoPorNome = '',
@@ -177,6 +182,7 @@ class Pedido {
       trocoPara: (d['trocoPara'] as num?)?.toDouble(),
       pixConfirmado: d['pixConfirmado'] as bool? ?? false,
       temComprovante: d['temComprovante'] as bool? ?? false,
+      motoboyId: d['motoboyId'] as String?,
       entregadorId: d['entregadorId'] as String?,
       entregadorNome: entregador?['nome'] as String? ?? '',
       criadoPorNome: (d['criadoPor'] as Map?)?['nome'] as String? ?? '',

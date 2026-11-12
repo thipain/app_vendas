@@ -208,7 +208,7 @@ class _Coluna extends StatelessWidget {
       for (final p in pedidos) {
         acertos
             .putIfAbsent(
-              p.entregadorNome.isEmpty ? 'Sem entregador' : p.entregadorNome,
+              p.entregadorNome.isEmpty ? 'Sem motoboy' : p.entregadorNome,
               () => [],
             )
             .add(p);

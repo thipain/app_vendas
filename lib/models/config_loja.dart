@@ -23,6 +23,11 @@ class ConfigLoja {
   final String chavePix;
   final List<String> formasDelivery;
 
+  /// Pagamento dos motoboys: diária de quem trabalhou no dia + valor por
+  /// entrega feita.
+  final double diariaMotoboy;
+  final double valorPorEntrega;
+
   const ConfigLoja({
     this.nomeLoja = 'Minha Loja',
     this.nomeSistema = 'App Vendas',
@@ -37,6 +42,8 @@ class ConfigLoja {
     this.taxaEntrega = 0,
     this.chavePix = '',
     this.formasDelivery = formasDeliveryPadrao,
+    this.diariaMotoboy = 0,
+    this.valorPorEntrega = 0,
   });
 
   static const formasDeliveryPadrao = [
@@ -80,6 +87,10 @@ class ConfigLoja {
                 if ((d['formasDelivery'] as List).contains(f)) f,
             ]
           : p.formasDelivery,
+      diariaMotoboy:
+          (d['diariaMotoboy'] as num?)?.toDouble() ?? p.diariaMotoboy,
+      valorPorEntrega:
+          (d['valorPorEntrega'] as num?)?.toDouble() ?? p.valorPorEntrega,
     );
   }
 
@@ -97,5 +108,7 @@ class ConfigLoja {
     'taxaEntrega': taxaEntrega,
     'chavePix': chavePix,
     'formasDelivery': formasDelivery,
+    'diariaMotoboy': diariaMotoboy,
+    'valorPorEntrega': valorPorEntrega,
   };
 }

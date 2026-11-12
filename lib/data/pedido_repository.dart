@@ -7,7 +7,7 @@ import '../models/comanda.dart';
 import '../models/movimento_estoque.dart';
 import '../models/pedido.dart';
 import '../models/produto.dart';
-import '../models/usuario.dart';
+import '../models/motoboy.dart';
 import '../models/venda.dart';
 import 'auditoria_repository.dart';
 import 'banco.dart';
@@ -335,39 +335,43 @@ class PedidoRepository {
     _mudarStatus(pedido, Pedido.preparo, 'Pedido em preparo');
   }
 
-  /// Entrega o pedido a um entregador: ele passa a ver o pedido no celular.
-  void despachar(Pedido pedido, Usuario entregador) {
+  static Map<String, Object?> _dadosMotoboy(Motoboy m) => {
+    'motoboyId': m.id,
+    // Só quem tem login no app vê o pedido no celular.
+    'entregadorId': m.usuarioId,
+    'entregador': {'motoboyId': m.id, 'uid': m.usuarioId, 'nome': m.nome},
+  };
+
+  /// Entrega o pedido a um motoboy. Se ele tem login no app, passa a ver o
+  /// pedido no celular.
+  void despachar(Pedido pedido, Motoboy motoboy) {
     if (!pedido.podeAlterarItens) {
       throw const RegraException('O pedido já saiu para entrega.');
     }
-    if (!entregador.ativo) {
-      throw const RegraException('Este entregador está bloqueado.');
+    if (!motoboy.ativo) {
+      throw const RegraException('Este motoboy está desativado.');
     }
     _mudarStatus(
       pedido,
       Pedido.emRota,
       'Pedido saiu para entrega',
-      extra: {
-        'entregadorId': entregador.id,
-        'entregador': {'uid': entregador.id, 'nome': entregador.nome},
-        'saiuEm': Timestamp.now(),
-      },
+      extra: {..._dadosMotoboy(motoboy), 'saiuEm': Timestamp.now()},
     );
   }
 
-  /// Troca o entregador de um pedido que já saiu (ex.: atribuído errado).
-  void trocarEntregador(Pedido pedido, Usuario entregador) {
-    if (pedido.status != Pedido.emRota) {
-      throw const RegraException('Só é possível trocar o entregador em rota.');
+  /// Troca o motoboy de um pedido em rota ou já entregue (ex.: escolhido
+  /// errado). A entrega passa a contar para o novo motoboy.
+  void trocarMotoboy(Pedido pedido, Motoboy motoboy) {
+    if (pedido.status != Pedido.emRota && pedido.status != Pedido.entregue) {
+      throw const RegraException(
+        'Só é possível trocar o motoboy de um pedido em rota ou entregue.',
+      );
     }
     _mudarStatus(
       pedido,
-      Pedido.emRota,
-      'Entregador do pedido trocado',
-      extra: {
-        'entregadorId': entregador.id,
-        'entregador': {'uid': entregador.id, 'nome': entregador.nome},
-      },
+      pedido.status,
+      'Motoboy do pedido trocado',
+      extra: _dadosMotoboy(motoboy),
     );
   }
 

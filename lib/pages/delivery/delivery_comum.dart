@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../../core/formatters.dart';
 import '../../data/dados.dart';
 import '../../models/pedido.dart';
-import '../../models/usuario.dart';
+import '../../models/motoboy.dart';
 import '../../models/venda.dart';
-import '../../widgets/seletor.dart';
+import '../../widgets/mensagens.dart';
 import '../inicio/comum.dart';
 
 /// Cor de cada etapa do pedido.
@@ -236,31 +236,35 @@ class _Etiqueta extends StatelessWidget {
   }
 }
 
-/// Escolhe quem vai entregar: primeiro os entregadores, depois o resto da
-/// equipe ativa (alguém do balcão também pode sair com o pedido).
-Future<Usuario?> escolherEntregador(BuildContext context) {
-  final ativos = Dados.equipeAtiva
-    ..sort((a, b) {
-      if (a.isEntregador != b.isEntregador) return a.isEntregador ? -1 : 1;
-      return a.nome.toLowerCase().compareTo(b.nome.toLowerCase());
-    });
-  return selecionar<Usuario>(
-    context,
-    titulo: 'Quem vai entregar?',
-    itens: ativos,
-    textoBusca: (u) => '${u.nome} ${u.email}',
-    itemBuilder: (u) => ListTile(
-      leading: CircleAvatar(
-        child: u.isEntregador
-            ? const Icon(Icons.two_wheeler)
-            : Text(iniciais(u.nome)),
-      ),
-      title: Text(u.nome),
-      subtitle: Text(
-        u.isEntregador
-            ? 'Entregador — vê o pedido no celular'
-            : 'Equipe da loja',
-      ),
+/// Escolhe o motoboy que vai levar o pedido, entre os cadastrados e ativos
+/// na loja.
+Future<Motoboy?> escolherMotoboy(BuildContext context) async {
+  final ativos = Dados.motoboys.value.where((m) => m.ativo).toList();
+  if (ativos.isEmpty) {
+    avisar(
+      context,
+      'Cadastre os motoboys em "Motoboys e diárias" antes de despachar.',
+    );
+    return null;
+  }
+  return showDialog<Motoboy>(
+    context: context,
+    builder: (ctx) => SimpleDialog(
+      title: const Text('Qual motoboy vai entregar?'),
+      children: [
+        for (final m in ativos)
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, m),
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: CircleAvatar(child: Text(iniciais(m.nome))),
+              title: Text(m.nome),
+              subtitle: m.usuarioId == null
+                  ? null
+                  : const Text('Recebe o pedido no celular'),
+            ),
+          ),
+      ],
     ),
   );
 }

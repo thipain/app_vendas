@@ -8,6 +8,7 @@ import '../clientes/clientes_page.dart';
 import '../comandas/comandas_page.dart';
 import '../configuracoes/configuracoes_page.dart';
 import '../delivery/entregas_page.dart';
+import '../delivery/motoboys_page.dart';
 import '../delivery/pedidos_page.dart';
 import '../equipe/equipe_page.dart';
 import '../estoque/movimentacoes_page.dart';
@@ -96,6 +97,14 @@ final modulos = <Modulo>[
     permissao: Permissao.delivery,
     grupo: Grupos.operacao,
     builder: (_) => const PedidosPage(),
+  ),
+  Modulo(
+    id: 'motoboys',
+    titulo: 'Motoboys e diárias',
+    icone: Icons.sports_motorsports_outlined,
+    permissao: Permissao.delivery,
+    grupo: Grupos.operacao,
+    builder: (_) => const MotoboysPage(),
   ),
   Modulo(
     id: 'entregas',

@@ -31,7 +31,12 @@ Sistema completo de PDV para adega/loja, com todas as funções do AdegaPDV (ver
   **cartão/VR**: aviso para levar a maquininha. Via do entregador em 80 mm,
   WhatsApp/ligação/mapa com um toque e **acerto com o entregador** no caixa (gera as
   vendas, com a taxa de entrega fora do lucro dos produtos)
-- **Entregador (motoboy)**: login próprio criado em Equipe; vê só as entregas
+- **Motoboys e diárias**: cadastro dos motoboys da loja (com ou sem login no app);
+  ao despachar o pedido escolhe-se quem leva. A tela mostra quantas entregas cada um
+  fez no dia e quanto receber (diária + valor por entrega, definidos pelo
+  administrador); **Fechar o dia e zerar** guarda o resumo em "Dias anteriores",
+  pode pagar com o dinheiro do caixa (sangria) e começa a contagem de novo
+- **Entregador (motoboy)**: login opcional criado em Equipe e ligado ao cadastro do motoboy; vê só as entregas
   atribuídas a ele, abre a rota no mapa, confere a maioridade do cliente e marca como
   entregue (registra a localização)
 

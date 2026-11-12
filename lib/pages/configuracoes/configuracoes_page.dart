@@ -159,6 +159,9 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
         for (final f in FormaPagamento.todas)
           if (_formasDelivery.contains(f)) f,
       ],
+      // Editados na tela "Motoboys e diárias".
+      diariaMotoboy: ConfigRepository.atual.value.diariaMotoboy,
+      valorPorEntrega: ConfigRepository.atual.value.valorPorEntrega,
     );
     executar(
       context,
