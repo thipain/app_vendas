@@ -31,6 +31,17 @@ class SistemaRepository {
     'auditoria',
   ];
 
+  /// Coleções do delivery e da loja online (não existiam na versão antiga,
+  /// então só entram na exclusão da loja, não na migração).
+  static const colecoesDelivery = [
+    'pedidos',
+    'motoboys',
+    'fechamentosMotoboys',
+    'pedidosOnline',
+    'limitesOnline',
+    'cupons',
+  ];
+
   Stream<Sistema> watchSistema() => Banco.sistema
       .snapshots(includeMetadataChanges: true)
       .where((s) => s.exists || !s.metadata.isFromCache)
@@ -436,20 +447,38 @@ class SistemaRepository {
         await conta.update({'lojaId': null, 'lojaNome': null});
       }
     }
-    for (final c in [...colecoesDaLoja, 'config', 'membros']) {
+    // Loja online primeiro: a página pública e o link param de funcionar.
+    progresso?.call('Desativando a loja online...');
+    final publica = _db.collection('lojasPublicas').doc(loja.id);
+    final slug =
+        (await publica.get(const GetOptions(source: Source.server)))
+                .data()?['slug']
+            as String?;
+    await _apagarColecao(publica.collection('cardapio'));
+    await _apagarColecao(publica.collection('cupons'));
+    final fimOnline = _db.batch();
+    if (slug != null && slug.isNotEmpty) {
+      final s = _db.collection('slugs').doc(slug);
+      final dono = (await s.get(const GetOptions(source: Source.server)))
+          .data()?['lojaId'];
+      if (dono == loja.id) fimOnline.delete(s);
+    }
+    fimOnline.delete(publica);
+    await fimOnline.commit();
+
+    for (final c in [
+      ...colecoesDaLoja,
+      ...colecoesDelivery,
+      'config',
+      'membros',
+    ]) {
       progresso?.call('Excluindo $c...');
-      while (true) {
-        final docs = await lojaRef
-            .collection(c)
-            .limit(400)
-            .get(const GetOptions(source: Source.server));
-        if (docs.docs.isEmpty) break;
-        final batch = _db.batch();
-        for (final d in docs.docs) {
-          batch.delete(d.reference);
-        }
-        await batch.commit();
-      }
+      // Pedidos guardam o comprovante do Pix numa subcoleção.
+      final anexos = c == 'pedidos' || c == 'pedidosOnline';
+      await _apagarColecao(
+        lojaRef.collection(c),
+        subcolecao: anexos ? 'anexos' : null,
+      );
     }
     progresso?.call('Excluindo avisos da loja...');
     final avisos = await _avisos
@@ -468,6 +497,30 @@ class SistemaRepository {
       dados: {'nome': loja.nome, 'responsavel': loja.responsavelNome},
     );
     await batch.commit();
+  }
+
+  /// Apaga todos os documentos de uma coleção em lotes de 400 (e, com
+  /// [subcolecao], os documentos dessa subcoleção de cada um).
+  Future<void> _apagarColecao(
+    CollectionReference<Map<String, dynamic>> col, {
+    String? subcolecao,
+  }) async {
+    while (true) {
+      final docs = await col
+          .limit(400)
+          .get(const GetOptions(source: Source.server));
+      if (docs.docs.isEmpty) return;
+      if (subcolecao != null) {
+        for (final d in docs.docs) {
+          await _apagarColecao(d.reference.collection(subcolecao));
+        }
+      }
+      final batch = _db.batch();
+      for (final d in docs.docs) {
+        batch.delete(d.reference);
+      }
+      await batch.commit();
+    }
   }
 
   CollectionReference<Map<String, dynamic>> get _erros =>

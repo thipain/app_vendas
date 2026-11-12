@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../core/dinheiro.dart';
 import '../core/regra_exception.dart';
 import '../core/sessao.dart';
+import '../models/cupom.dart';
 import '../models/pedido.dart';
 import '../models/pedido_online.dart';
 import '../models/produto.dart';
@@ -22,11 +23,19 @@ class ConferenciaPedidoOnline {
   final List<String> precosAlterados;
   final int subtotalCentavos;
 
+  /// Desconto do cupom recalculado com o cupom e os preços de agora.
+  final int descontoCentavos;
+
+  /// Por que o cupom do cliente não vale mais (null = vale ou não tem).
+  final String? avisoCupom;
+
   const ConferenciaPedidoOnline({
     required this.carrinho,
     required this.problemas,
     required this.precosAlterados,
     required this.subtotalCentavos,
+    this.descontoCentavos = 0,
+    this.avisoCupom,
   });
 }
 
@@ -43,6 +52,13 @@ class PedidoOnlineRepository {
               ..sort((a, b) => a.criadoEm.compareTo(b.criadoEm)),
       );
 
+  /// Pedidos online recebidos no período (para contar os recusados).
+  Stream<List<PedidoOnline>> watchPeriodo(DateTime inicio, DateTime fim) => _col
+      .where('criadoEm', isGreaterThanOrEqualTo: Timestamp.fromDate(inicio))
+      .where('criadoEm', isLessThan: Timestamp.fromDate(fim))
+      .snapshots()
+      .map((s) => s.docs.map(PedidoOnline.fromDoc).toList());
+
   /// Comprovante do Pix enviado pelo cliente (base64), ou null.
   Future<String?> lerComprovante(String id) async {
     final d = await _col.doc(id).collection('anexos').doc('comprovante').get();
@@ -52,8 +68,10 @@ class PedidoOnlineRepository {
   /// Confere os itens com o cadastro atual: preço de agora e estoque.
   static ConferenciaPedidoOnline conferir(
     PedidoOnline po,
-    Map<String, Produto> produtos,
-  ) {
+    Map<String, Produto> produtos, {
+    Map<String, Cupom> cupons = const {},
+    DateTime? agora,
+  }) {
     final carrinho = <ItemCarrinho>[];
     final problemas = <String>[];
     final precos = <String>[];
@@ -80,11 +98,23 @@ class PedidoOnlineRepository {
       carrinho.add(ItemCarrinho(p, i.quantidade));
       subtotal += centavos(p.preco) * i.quantidade;
     }
+    var desconto = 0;
+    String? aviso;
+    final codigo = po.cupom;
+    if (codigo != null) {
+      final cupom = cupons[codigo];
+      aviso = cupom == null
+          ? 'O cupom $codigo não existe mais.'
+          : cupom.motivoInvalido(subtotal, agora ?? DateTime.now());
+      if (aviso == null) desconto = cupom!.descontoCentavos(subtotal);
+    }
     return ConferenciaPedidoOnline(
       carrinho: carrinho,
       problemas: problemas,
       precosAlterados: precos,
       subtotalCentavos: subtotal,
+      descontoCentavos: desconto,
+      avisoCupom: aviso,
     );
   }
 
@@ -95,6 +125,7 @@ class PedidoOnlineRepository {
     PedidoOnline po,
     Map<String, Produto> produtos, {
     String? comprovantePix,
+    Map<String, Cupom> cupons = const {},
   }) {
     if (po.status != PedidoOnline.aguardando) {
       throw const RegraException('Este pedido já foi respondido.');
@@ -104,7 +135,7 @@ class PedidoOnlineRepository {
         'O comprovante do Pix ainda não carregou. Verifique a internet.',
       );
     }
-    final c = conferir(po, produtos);
+    final c = conferir(po, produtos, cupons: cupons);
     if (c.problemas.isNotEmpty) {
       throw RegraException(
         'Não dá para aceitar como está:\n${c.problemas.join('\n')}\n'
@@ -115,7 +146,8 @@ class PedidoOnlineRepository {
       po.referencia,
       if (po.cep.isNotEmpty) 'CEP ${po.cep}',
     ].where((s) => s.trim().isNotEmpty).join(' · ');
-    final total = c.subtotalCentavos + centavos(po.taxaEntrega);
+    final total =
+        c.subtotalCentavos - c.descontoCentavos + centavos(po.taxaEntrega);
     final troco = po.trocoPara;
     return PedidoRepository().criar(
       DadosPedido(
@@ -136,6 +168,8 @@ class PedidoOnlineRepository {
       c.carrinho,
       pedidoOnlineId: po.id,
       comprovantePix: comprovantePix,
+      cupom: c.descontoCentavos > 0 ? po.cupom : null,
+      descontoCentavos: c.descontoCentavos,
     );
   }
 

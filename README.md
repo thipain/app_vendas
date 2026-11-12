@@ -45,6 +45,13 @@ Sistema completo de PDV para adega/loja, com todas as funções do AdegaPDV (ver
   confere preços e estoque atuais e aceita (vira pedido de delivery) ou recusa com
   motivo; o cliente acompanha o status pela página. Abrir/fechar a loja online fica no
   topo da tela Delivery; um pedido a cada 2 minutos por cliente
+- **Cupons de desconto**: código, % ou R$, pedido mínimo e validade; o cliente aplica na
+  loja online, o desconto vale sobre os produtos (não sobre a entrega) e é conferido de
+  novo ao aceitar; contagem de usos
+- **Relatório do delivery**: pedidos concluídos, cancelados e recusados, faturamento,
+  ticket médio, taxas, descontos, tempos médios (preparo, rua e total) e quebras por
+  canal (balcão × online), motoboy, bairro e forma de pagamento. Aba **Clientes**: quem
+  mais compra e quem sumiu, com mensagem pronta no WhatsApp (com cupom e link da loja)
 - **Entregador (motoboy)**: login opcional criado em Equipe e ligado ao cadastro do motoboy; vê só as entregas
   atribuídas a ele, abre a rota no mapa, confere a maioridade do cliente e marca como
   entregue (registra a localização)

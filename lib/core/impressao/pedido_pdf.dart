@@ -96,6 +96,11 @@ Future<Uint8List> gerarViaPedidoPdf(Pedido p, ConfigLoja loja) async {
             ),
           separador(),
           linha('Subtotal', formatarMoeda(p.subtotal)),
+          if (p.descontoCentavos > 0)
+            linha(
+              'Cupom ${p.cupom ?? ''}',
+              '- ${formatarMoeda(p.descontoCentavos / 100)}',
+            ),
           linha('Taxa de entrega', formatarMoeda(p.taxaEntrega)),
           linha('TOTAL', formatarMoeda(p.total), destaque: true),
           separador(),

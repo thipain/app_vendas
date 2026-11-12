@@ -487,6 +487,11 @@ class _PedidoDetalhePageState extends State<PedidoDetalhePage> {
                         ),
                       const Divider(),
                       _linhaValor('Produtos', p.subtotal),
+                      if (p.descontoCentavos > 0)
+                        _linhaValor(
+                          'Cupom ${p.cupom ?? ''}',
+                          -deCentavos(p.descontoCentavos),
+                        ),
                       _linhaValor('Taxa de entrega', p.taxaEntrega),
                       _linhaValor('Total', p.total, destaque: true),
                     ],

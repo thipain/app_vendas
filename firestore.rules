@@ -70,6 +70,15 @@ service cloud.firestore {
       return acessa(loja) && !entregadorNa(loja);
     }
 
+    // Cupom público da loja: ativo, dentro da validade e com o mínimo
+    // atingido. O valor exato do desconto é conferido pela loja ao aceitar.
+    function cupomValido(loja, codigo, subtotal) {
+      let c = get(/databases/$(database)/documents/lojasPublicas/$(loja)/cupons/$(codigo)).data;
+      return c.ativo == true
+        && subtotal >= c.get('minimo', 0)
+        && (c.get('validoAte', null) == null || request.time < c.validoAte);
+    }
+
     // Pedido enviado pelo cliente na loja online. Os preços são conferidos de
     // novo pela loja ao aceitar; aqui valida o formato, a loja aberta, a taxa,
     // o pedido mínimo, a forma de pagamento e, no Pix, o comprovante anexado
@@ -85,7 +94,7 @@ service cloud.firestore {
              'endereco', 'bairro', 'referencia', 'observacao', 'itens',
              'subtotal', 'taxaEntrega', 'total', 'formaPagamento',
              'trocoPara', 'temComprovante', 'maiorIdade', 'status',
-             'criadoEm'])
+             'criadoEm', 'cupom', 'desconto'])
         && d.clienteUid == request.auth.uid
         && d.status == 'aguardando'
         && d.criadoEm == request.time
@@ -106,6 +115,11 @@ service cloud.firestore {
         && d.taxaEntrega == pub.get('taxaEntrega', 0)
         && d.formaPagamento in pub.get('formas', [])
         && (d.trocoPara == null || d.trocoPara is number)
+        && ((d.get('cupom', null) == null && d.get('desconto', 0) == 0)
+            || (d.get('cupom', null) is string
+                && cupomValido(loja, d.cupom, d.subtotal)
+                && d.desconto is number && d.desconto > 0
+                && d.desconto <= d.subtotal))
         && (d.formaPagamento != 'Pix'
             || (d.temComprovante == true
                 && existsAfter(/databases/$(database)/documents/lojas/$(loja)/pedidosOnline/$(id)/anexos/comprovante)))
@@ -195,7 +209,7 @@ service cloud.firestore {
           'produtos', 'clientes', 'vendas', 'caixas', 'movimentosCaixa',
           'comandas', 'movimentosEstoque', 'notasEntrada', 'receitas',
           'operacoesEstoque', 'retiradas', 'ponto', 'pedidos', 'motoboys',
-          'fechamentosMotoboys', 'pedidosOnline'
+          'fechamentosMotoboys', 'pedidosOnline', 'cupons'
         ];
       }
 
@@ -222,7 +236,9 @@ service cloud.firestore {
 
       // Último pedido online de cada cliente: no máximo um a cada 2 minutos.
       match /limitesOnline/{uid} {
-        allow read: if logado() && request.auth.uid == uid;
+        allow read: if (logado() && request.auth.uid == uid) || dono();
+        // Exclusão da loja pelo dono do sistema.
+        allow delete: if dono();
         allow create, update: if logado() && request.auth.uid == uid
           && request.resource.data.keys().hasOnly(['ultimoPedido'])
           && request.resource.data.ultimoPedido == request.time
@@ -268,6 +284,13 @@ service cloud.firestore {
       allow write: if equipeNa(loja) || dono();
       match /cardapio/{doc} {
         allow read: if true;
+        allow write: if equipeNa(loja) || dono();
+      }
+      // Cupons: a página consulta pelo código digitado, sem listar todos.
+      // O dono do sistema lista para apagar junto com a loja.
+      match /cupons/{codigo} {
+        allow get: if true;
+        allow list: if dono();
         allow write: if equipeNa(loja) || dono();
       }
     }

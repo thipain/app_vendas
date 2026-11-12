@@ -226,6 +226,15 @@
       </div>
 
       <div class="cartao">
+        <label class="campo" for="codigoCupom" style="margin-top:0">Cupom de desconto</label>
+        <div style="display:flex;gap:8px">
+          <input class="campo-input" id="codigoCupom" maxlength="20" autocapitalize="characters" placeholder="Ex.: BEMVINDO10" style="flex:1">
+          <button class="botao-sec" id="aplicarCupom" type="button">Aplicar</button>
+        </div>
+        <p id="textoCupom" class="det" style="margin:8px 0 0"></p>
+      </div>
+
+      <div class="cartao">
         <div class="totais" id="totais"></div>
       </div>
 
@@ -337,6 +346,7 @@
       busca: '',
       forma: null,
       comprovante: null,
+      cupom: null,
       uid: null,
     };
 
@@ -413,6 +423,61 @@
     const subtotalCentavos = () => itensSacola().reduce((s, i) => s + centavos(i.p.preco) * i.q, 0);
     const taxaCentavos = () => centavos(estado.loja?.taxaEntrega || 0);
 
+    // Cupom: o desconto vale sobre os produtos (não sobre a entrega).
+    function motivoCupomInvalido() {
+      const c = estado.cupom;
+      if (!c) return null;
+      if (subtotalCentavos() < centavos(c.minimo || 0)) {
+        return `Este cupom vale para pedidos a partir de ${moeda(c.minimo)} em produtos.`;
+      }
+      return null;
+    }
+    function descontoCentavos() {
+      const c = estado.cupom;
+      if (!c || motivoCupomInvalido()) return 0;
+      const sub = subtotalCentavos();
+      const d = c.tipo === 'percentual' ? Math.round(sub * Math.min(100, c.valor) / 100) : centavos(c.valor);
+      return Math.max(0, Math.min(sub, d));
+    }
+    const totalCentavos = () => subtotalCentavos() - descontoCentavos() + taxaCentavos();
+
+    function desenharCupom() {
+      const t = $('textoCupom');
+      if (!estado.cupom) { t.textContent = ''; t.className = 'det'; return; }
+      const motivo = motivoCupomInvalido();
+      const c = estado.cupom;
+      t.className = motivo ? 'obrigatorio' : 'det';
+      t.replaceChildren(motivo || `Cupom ${c.codigo} aplicado: ${c.tipo === 'percentual' ? c.valor + '%' : moeda(c.valor)} de desconto. `,
+        el('button', { class: 'botao-sec', type: 'button', style: 'margin-left:6px', onclick: () => {
+          estado.cupom = null; $('codigoCupom').value = ''; desenharFinalizar();
+        } }, 'Remover'));
+    }
+
+    async function aplicarCupom() {
+      const codigo = $('codigoCupom').value.trim().toUpperCase();
+      const t = $('textoCupom');
+      if (!/^[A-Z0-9]{3,20}$/.test(codigo)) {
+        t.className = 'obrigatorio'; t.textContent = 'Digite o código do cupom.'; return;
+      }
+      t.className = 'det'; t.textContent = 'Conferindo…';
+      try {
+        const s = await getDoc(doc(db, 'lojasPublicas', estado.lojaId, 'cupons', codigo));
+        const c = s.exists() ? s.data() : null;
+        const vencido = c && c.validoAte && c.validoAte.toDate() <= new Date();
+        if (!c || !c.ativo || vencido) {
+          estado.cupom = null;
+          t.className = 'obrigatorio';
+          t.textContent = vencido ? 'Este cupom venceu.' : 'Cupom não encontrado.';
+          desenharTotais(); atualizarBarra();
+          return;
+        }
+        estado.cupom = { codigo, tipo: c.tipo, valor: c.valor, minimo: c.minimo || 0 };
+        desenharFinalizar();
+      } catch (_) {
+        t.className = 'obrigatorio'; t.textContent = 'Não foi possível conferir o cupom. Tente de novo.';
+      }
+    }
+
     function desenharCardapio() {
       const busca = normalizar(estado.busca);
       const cats = [...new Set(estado.produtos.map((p) => p.categoria))];
@@ -468,7 +533,7 @@
       } else if (naFinalizar) {
         barra.classList.remove('oculto');
         $('textoBarra').textContent = 'Enviar pedido';
-        $('valorBarra').textContent = moeda((subtotalCentavos() + taxaCentavos()) / 100);
+        $('valorBarra').textContent = moeda(totalCentavos() / 100);
         $('botaoBarra').disabled = !!motivoBloqueio();
       } else {
         barra.classList.add('oculto');
@@ -500,6 +565,7 @@
         el('span', {}, f === 'Pix' ? 'Pix (pague agora e anexe o comprovante)' : f === 'Dinheiro' ? 'Dinheiro na entrega' : f + ' na entrega (maquininha)'),
       )));
       desenharPagamento();
+      desenharCupom();
       desenharTotais();
       atualizarBarra();
     }
@@ -510,7 +576,7 @@
       const precisa = $('precisaTroco')?.checked ?? false;
       const valorAnterior = $('trocoPara')?.value ?? '';
       d.replaceChildren();
-      const total = (subtotalCentavos() + taxaCentavos()) / 100;
+      const total = totalCentavos() / 100;
       if (estado.forma === 'Pix') {
         const chave = estado.loja.chavePix || '';
         d.append(
@@ -551,19 +617,20 @@
       const t = $('textoTroco');
       if (!t) return;
       const v = lerValor($('trocoPara').value);
-      const total = subtotalCentavos() + taxaCentavos();
+      const total = totalCentavos();
       if (v == null) { t.textContent = ''; return; }
       const troco = centavos(v) - total;
       t.textContent = troco >= 0 ? `Seu troco: ${moeda(troco / 100)}` : 'O valor é menor que o total do pedido.';
     }
 
     function desenharTotais() {
-      const sub = subtotalCentavos(), taxa = taxaCentavos();
+      const sub = subtotalCentavos(), taxa = taxaCentavos(), desc = descontoCentavos();
       const minimo = centavos(estado.loja.pedidoMinimo || 0);
       $('totais').replaceChildren(
         el('div', {}, el('span', {}, 'Produtos'), el('span', {}, moeda(sub / 100))),
+        desc > 0 ? el('div', { style: 'color:var(--ok)' }, el('span', {}, `Cupom ${estado.cupom.codigo}`), el('span', {}, '- ' + moeda(desc / 100))) : '',
         el('div', {}, el('span', {}, 'Taxa de entrega'), el('span', {}, moeda(taxa / 100))),
-        el('div', { class: 'total' }, el('span', {}, 'Total'), el('span', {}, moeda((sub + taxa) / 100))),
+        el('div', { class: 'total' }, el('span', {}, 'Total'), el('span', {}, moeda((sub - desc + taxa) / 100))),
         minimo > 0 && sub < minimo ? el('p', { class: 'obrigatorio' }, `Pedido mínimo: ${moeda(minimo / 100)} em produtos.`) : '',
       );
     }
@@ -635,7 +702,7 @@
       }
       if (estado.forma === 'Dinheiro' && $('precisaTroco')?.checked) {
         const t = lerValor($('trocoPara')?.value);
-        if (t == null || centavos(t) < sub + taxaCentavos()) return 'Informe um valor para troco maior que o total.';
+        if (t == null || centavos(t) < totalCentavos()) return 'Informe um valor para troco maior que o total.';
       }
       if (!$('maiorIdade').checked) return 'Confirme que você tem 18 anos ou mais.';
       return null;
@@ -678,7 +745,7 @@
         const uid = await garantirLogin();
         const f = dadosFormulario();
         const itens = itensSacola();
-        const sub = subtotalCentavos(), taxa = taxaCentavos();
+        const sub = subtotalCentavos(), taxa = taxaCentavos(), desc = descontoCentavos();
         const troco = estado.forma === 'Dinheiro' && $('precisaTroco')?.checked ? lerValor($('trocoPara').value) : null;
         const ref = doc(collection(db, 'lojas', estado.lojaId, 'pedidosOnline'));
         const batch = writeBatch(db);
@@ -694,7 +761,9 @@
           itens: itens.map(({ p, q }) => ({ produtoId: p.id, nome: p.nome, quantidade: q, precoUnitario: p.preco })),
           subtotal: sub / 100,
           taxaEntrega: taxa / 100,
-          total: (sub + taxa) / 100,
+          cupom: desc > 0 ? estado.cupom.codigo : null,
+          desconto: desc / 100,
+          total: (sub - desc + taxa) / 100,
           formaPagamento: estado.forma,
           trocoPara: troco == null ? null : centavos(troco) / 100,
           temComprovante: estado.forma === 'Pix',
@@ -784,6 +853,7 @@
         el('div', { class: 'det' }, `${p.endereco} — ${p.bairro}`),
         el('div', { style: 'margin-top:10px' }, (p.itens || []).map((it) => el('div', { class: 'det' }, `${it.quantidade}× ${it.nome}`))),
         el('div', { class: 'totais', style: 'margin-top:10px' },
+          p.desconto > 0 ? el('div', {}, el('span', {}, `Cupom ${p.cupom || ''}`), el('span', {}, '- ' + moeda(p.desconto))) : '',
           el('div', {}, el('span', {}, 'Taxa de entrega'), el('span', {}, moeda(p.taxaEntrega || 0))),
           el('div', { class: 'total' }, el('span', {}, 'Total'), el('span', {}, moeda(p.total || 0)))),
         el('div', { class: 'det', style: 'margin-top:6px' }, 'Pagamento: ' + pag),
@@ -856,6 +926,8 @@
       }
     });
     $('voltarCardapio').addEventListener('click', () => { mostrar('telaCardapio'); desenharCardapio(); });
+    $('aplicarCupom').addEventListener('click', aplicarCupom);
+    $('codigoCupom').addEventListener('keydown', (e) => { if (e.key === 'Enter') aplicarCupom(); });
     $('novoPedido').addEventListener('click', () => {
       if (pararAcompanhamento) pararAcompanhamento();
       history.replaceState(null, '', location.pathname);

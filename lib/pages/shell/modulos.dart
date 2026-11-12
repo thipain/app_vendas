@@ -7,9 +7,11 @@ import '../calculadora/calculadora_page.dart';
 import '../clientes/clientes_page.dart';
 import '../comandas/comandas_page.dart';
 import '../configuracoes/configuracoes_page.dart';
+import '../delivery/cupons_page.dart';
 import '../delivery/entregas_page.dart';
 import '../delivery/motoboys_page.dart';
 import '../delivery/pedidos_page.dart';
+import '../delivery/relatorio_delivery_page.dart';
 import '../equipe/equipe_page.dart';
 import '../estoque/movimentacoes_page.dart';
 import '../estoque/notas_entrada_page.dart';
@@ -107,6 +109,14 @@ final modulos = <Modulo>[
     builder: (_) => const MotoboysPage(),
   ),
   Modulo(
+    id: 'cupons',
+    titulo: 'Cupons de desconto',
+    icone: Icons.confirmation_number_outlined,
+    permissao: Permissao.delivery,
+    grupo: Grupos.operacao,
+    builder: (_) => const CuponsPage(),
+  ),
+  Modulo(
     id: 'entregas',
     titulo: 'Minhas entregas',
     icone: Icons.two_wheeler,
@@ -201,6 +211,14 @@ final modulos = <Modulo>[
     permissao: Permissao.relatorios,
     grupo: Grupos.gestao,
     builder: (_) => const RelatoriosPage(),
+  ),
+  Modulo(
+    id: 'relatorio_delivery',
+    titulo: 'Relatório do delivery',
+    icone: Icons.insights_outlined,
+    permissao: Permissao.relatorios,
+    grupo: Grupos.gestao,
+    builder: (_) => const RelatorioDeliveryPage(),
   ),
   Modulo(
     id: 'auditoria',

@@ -52,6 +52,10 @@ class Pedido {
   final List<ItemComanda> itens;
   final double taxaEntrega;
 
+  /// Desconto do cupom (valor em R$, já calculado sobre os produtos).
+  final double desconto;
+  final String? cupom;
+
   /// Forma combinada com o cliente (Pix, Dinheiro, Débito, Crédito, VR).
   final String formaPagamento;
 
@@ -95,6 +99,8 @@ class Pedido {
     this.observacao = '',
     this.itens = const [],
     this.taxaEntrega = 0,
+    this.desconto = 0,
+    this.cupom,
     required this.formaPagamento,
     this.trocoPara,
     this.pixConfirmado = false,
@@ -131,7 +137,13 @@ class Pedido {
 
   int get quantidadeItens => itens.fold(0, (s, i) => s + i.quantidade);
   int get subtotalCentavos => itens.fold(0, (s, i) => s + i.totalCentavos);
-  int get totalCentavos => subtotalCentavos + centavos(taxaEntrega);
+  int get descontoCentavos {
+    final d = centavos(desconto);
+    return d > subtotalCentavos ? subtotalCentavos : (d < 0 ? 0 : d);
+  }
+
+  int get totalCentavos =>
+      subtotalCentavos - descontoCentavos + centavos(taxaEntrega);
   double get subtotal => deCentavos(subtotalCentavos);
   double get total => deCentavos(totalCentavos);
 
@@ -183,6 +195,8 @@ class Pedido {
       observacao: d['observacao'] as String? ?? '',
       itens: ItemComanda.doMapa(d['itens'] as Map?),
       taxaEntrega: (d['taxaEntrega'] as num?)?.toDouble() ?? 0,
+      desconto: (d['desconto'] as num?)?.toDouble() ?? 0,
+      cupom: d['cupom'] as String?,
       formaPagamento: d['formaPagamento'] as String? ?? '',
       trocoPara: (d['trocoPara'] as num?)?.toDouble(),
       pixConfirmado: d['pixConfirmado'] as bool? ?? false,

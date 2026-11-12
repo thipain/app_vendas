@@ -92,7 +92,8 @@ class _PedidoFormPageState extends State<PedidoFormPage> {
         );
 
   int get _taxaCentavos => centavos(lerValor(_taxa.text) ?? 0);
-  int get _totalCentavos => _subtotalCentavos + _taxaCentavos;
+  int get _totalCentavos =>
+      _subtotalCentavos - (_p?.descontoCentavos ?? 0) + _taxaCentavos;
 
   Future<void> _buscarCliente() async {
     List<Cliente> clientes;
@@ -433,6 +434,8 @@ class _PedidoFormPageState extends State<PedidoFormPage> {
         child: Column(
           children: [
             linha('Produtos', _subtotalCentavos),
+            if ((_p?.descontoCentavos ?? 0) > 0)
+              linha('Cupom ${_p!.cupom ?? ''}', -_p.descontoCentavos),
             linha('Taxa de entrega', _taxaCentavos),
             const Divider(),
             linha('Total', _totalCentavos, destaque: true),

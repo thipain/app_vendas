@@ -11,6 +11,7 @@ import '../models/motoboy.dart';
 import '../models/venda.dart';
 import 'auditoria_repository.dart';
 import 'banco.dart';
+import 'cupom_repository.dart';
 import 'estoque.dart';
 import 'offline.dart';
 import 'venda_repository.dart';
@@ -41,6 +42,13 @@ class PedidoRepository {
       .where('status', whereIn: [Pedido.emRota, Pedido.entregue])
       .snapshots(includeMetadataChanges: true)
       .map((s) => s.docs.map(Pedido.fromDoc).toList()..sort(_ordem));
+
+  /// Pedidos registrados de [inicio] (inclusive) até [fim] (exclusivo).
+  Stream<List<Pedido>> watchPeriodo(DateTime inicio, DateTime fim) => colecao
+      .where('criadoEm', isGreaterThanOrEqualTo: Timestamp.fromDate(inicio))
+      .where('criadoEm', isLessThan: Timestamp.fromDate(fim))
+      .snapshots()
+      .map((s) => s.docs.map(Pedido.fromDoc).toList());
 
   Stream<Pedido?> watch(String id) => colecao
       .doc(id)
@@ -145,6 +153,8 @@ class PedidoRepository {
     List<ItemCarrinho> carrinho, {
     String? pedidoOnlineId,
     String? comprovantePix,
+    String? cupom,
+    int descontoCentavos = 0,
   }) {
     final d = _validar(dados);
     VendaRepository.validarCarrinho(carrinho);
@@ -152,7 +162,9 @@ class PedidoRepository {
       0,
       (s, i) => s + centavos(i.produto.preco) * i.quantidade,
     );
-    _validarTroco(d, subtotal + centavos(d.taxaEntrega));
+    final desconto = descontoCentavos.clamp(0, subtotal);
+    final total = subtotal - desconto + centavos(d.taxaEntrega);
+    _validarTroco(d, total);
     final ref = colecao.doc();
     final batch = _db.batch();
     final comComprovante = (comprovantePix ?? '').isNotEmpty;
@@ -172,13 +184,19 @@ class PedidoRepository {
         'pedidoId': ref.id,
         // Total conferido pela loja (preços atuais do cadastro).
         'subtotal': deCentavos(subtotal),
-        'total': deCentavos(subtotal + centavos(d.taxaEntrega)),
+        'desconto': deCentavos(desconto),
+        'total': deCentavos(total),
         'aceitoPor': Sessao.instancia.autor,
         'atualizadoEm': FieldValue.serverTimestamp(),
       });
     }
+    if (cupom != null && desconto > 0) {
+      CupomRepository.registrarUso(batch, cupom);
+    }
     batch.set(ref, {
       ...d.toMap(),
+      'desconto': deCentavos(desconto),
+      'cupom': desconto > 0 ? cupom : null,
       'status': Pedido.novo,
       'canal': pedidoOnlineId == null ? 'balcao' : 'online',
       'pedidoOnlineId': pedidoOnlineId,
@@ -236,7 +254,12 @@ class PedidoRepository {
   void editarDados(Pedido pedido, DadosPedido dados) {
     _exigirAtivo(pedido);
     final d = _validar(dados);
-    _validarTroco(d, pedido.subtotalCentavos + centavos(d.taxaEntrega));
+    _validarTroco(
+      d,
+      pedido.subtotalCentavos -
+          pedido.descontoCentavos +
+          centavos(d.taxaEntrega),
+    );
     final batch = _db.batch();
     final mudouForma = d.formaPagamento != pedido.formaPagamento;
     batch.update(colecao.doc(pedido.id), {

@@ -362,7 +362,7 @@ class VendaRepository {
           ),
       ],
       descontoPercentual: false,
-      descontoInformado: 0,
+      descontoInformado: deCentavos(pedido.descontoCentavos),
       pagamentos: [Pagamento(forma: forma, valor: total, recebido: recebido)],
       caixa: caixa,
       pedido: pedido,

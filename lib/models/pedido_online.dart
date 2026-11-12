@@ -45,6 +45,10 @@ class PedidoOnline {
   final List<ItemPedidoOnline> itens;
   final double subtotal;
   final double taxaEntrega;
+
+  /// Cupom usado pelo cliente e o desconto que a página calculou.
+  final String? cupom;
+  final double desconto;
   final double total;
   final String formaPagamento;
   final double? trocoPara;
@@ -66,6 +70,8 @@ class PedidoOnline {
     this.itens = const [],
     this.subtotal = 0,
     this.taxaEntrega = 0,
+    this.cupom,
+    this.desconto = 0,
     this.total = 0,
     required this.formaPagamento,
     this.trocoPara,
@@ -105,6 +111,10 @@ class PedidoOnline {
           .toList(),
       subtotal: n('subtotal'),
       taxaEntrega: n('taxaEntrega'),
+      cupom: (d['cupom'] as String?)?.isEmpty ?? true
+          ? null
+          : d['cupom'] as String,
+      desconto: n('desconto'),
       total: n('total'),
       formaPagamento: s('formaPagamento'),
       trocoPara: (d['trocoPara'] as num?)?.toDouble(),

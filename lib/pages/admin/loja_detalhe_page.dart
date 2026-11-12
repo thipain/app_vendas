@@ -446,7 +446,9 @@ class _ConfirmarExclusaoState extends State<_ConfirmarExclusao> {
             Text(
               'Todos os dados da ${widget.loja.nome} serão apagados do '
               'Firebase: produtos, vendas, caixa, comandas, estoque, notas, '
-              'equipe, ponto e configurações. Não é possível desfazer.',
+              'equipe, ponto, configurações, pedidos de delivery (com os '
+              'comprovantes), motoboys e a loja online, que sai do ar e '
+              'libera o link. Não é possível desfazer.',
             ),
             const SizedBox(height: 8),
             const Text(

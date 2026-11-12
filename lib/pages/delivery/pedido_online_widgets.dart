@@ -8,6 +8,7 @@ import '../../core/formatters.dart';
 import '../../data/alarme_online.dart';
 import '../../data/dados.dart';
 import '../../data/pedido_online_repository.dart';
+import '../../models/cupom.dart';
 import '../../models/pedido_online.dart';
 import '../../widgets/mensagens.dart';
 import 'delivery_comum.dart';
@@ -118,6 +119,9 @@ class _RespostaDialog extends StatefulWidget {
 
 class _RespostaDialogState extends State<_RespostaDialog> {
   final _repo = PedidoOnlineRepository();
+  Map<String, Cupom> get _cupons => {
+    for (final c in Dados.cupons.value) c.codigo: c,
+  };
   late final Future<String?> _comprovante = widget.pedido.isPix
       ? _repo.lerComprovante(widget.pedido.id)
       : Future.value(null);
@@ -147,6 +151,7 @@ class _RespostaDialogState extends State<_RespostaDialog> {
         widget.pedido,
         Dados.produtosPorId,
         comprovantePix: comprovante,
+        cupons: _cupons,
       );
       Navigator.pop(context, id);
     } catch (e) {
@@ -158,8 +163,13 @@ class _RespostaDialogState extends State<_RespostaDialog> {
   Widget build(BuildContext context) {
     final t = Theme.of(context);
     final p = widget.pedido;
-    final c = PedidoOnlineRepository.conferir(p, Dados.produtosPorId);
-    final totalLoja = c.subtotalCentavos + centavos(p.taxaEntrega);
+    final c = PedidoOnlineRepository.conferir(
+      p,
+      Dados.produtosPorId,
+      cupons: _cupons,
+    );
+    final totalLoja =
+        c.subtotalCentavos - c.descontoCentavos + centavos(p.taxaEntrega);
     return AlertDialog(
       title: Text('Pedido online #${p.codigo}'),
       content: SizedBox(
@@ -201,6 +211,13 @@ class _RespostaDialogState extends State<_RespostaDialog> {
                   ],
                 ),
               const SizedBox(height: 4),
+              if (p.cupom != null)
+                Row(
+                  children: [
+                    Expanded(child: Text('Cupom ${p.cupom}')),
+                    Text('- ${formatarMoeda(deCentavos(c.descontoCentavos))}'),
+                  ],
+                ),
               Row(
                 children: [
                   const Expanded(child: Text('Taxa de entrega')),
@@ -218,6 +235,17 @@ class _RespostaDialogState extends State<_RespostaDialog> {
                   ),
                 ],
               ),
+              if (c.avisoCupom != null) ...[
+                const SizedBox(height: 8),
+                _Alerta(
+                  cor: Colors.orange.shade800,
+                  titulo: 'Cupom sem desconto:',
+                  linhas: [
+                    c.avisoCupom!,
+                    'Se aceitar, o pedido entra sem o desconto. Avise o cliente.',
+                  ],
+                ),
+              ],
               if (c.problemas.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 _Alerta(

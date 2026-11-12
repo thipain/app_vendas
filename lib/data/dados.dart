@@ -5,12 +5,14 @@ import 'package:flutter/foundation.dart';
 import '../core/permissoes.dart';
 import '../core/sessao.dart';
 import '../models/caixa.dart';
+import '../models/cupom.dart';
 import '../models/motoboy.dart';
 import '../models/produto.dart';
 import '../models/usuario.dart';
 import 'alarme_online.dart';
 import 'caixa_repository.dart';
 import 'config_repository.dart';
+import 'cupom_repository.dart';
 import 'loja_online_repository.dart';
 import 'motoboy_repository.dart';
 import 'estoque.dart';
@@ -31,6 +33,9 @@ class Dados {
 
   /// Motoboys cadastrados na loja (ativos e desativados).
   static final motoboys = ValueNotifier<List<Motoboy>>(const []);
+
+  /// Cupons de desconto da loja online (só para quem tem acesso ao delivery).
+  static final cupons = ValueNotifier<List<Cupom>>(const []);
 
   static final _subs = <StreamSubscription<Object?>>[];
 
@@ -70,7 +75,15 @@ class Dados {
       ),
     );
     LojaOnlineRepository.iniciar();
-    if (Sessao.instancia.pode(Permissao.delivery)) AlarmeOnline.iniciar();
+    if (Sessao.instancia.pode(Permissao.delivery)) {
+      AlarmeOnline.iniciar();
+      _subs.add(
+        CupomRepository().watchTodos().listen(
+          (l) => cupons.value = l,
+          onError: (Object e) => debugPrint('Cupons: $e'),
+        ),
+      );
+    }
     _subs.add(
       MotoboyRepository().watchTodos().listen(
         (l) => motoboys.value = l,
@@ -96,6 +109,7 @@ class Dados {
     caixaAberto.value = null;
     equipe.value = const [];
     motoboys.value = const [];
+    cupons.value = const [];
   }
 
   /// Funcionários ativos (para escolher em retiradas).
